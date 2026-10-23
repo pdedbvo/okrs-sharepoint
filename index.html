@@ -113,37 +113,43 @@ body.apres .no .nome,body.apres .no .pct{font-size:14px}
    CONFIGURAÇÃO — o único trecho que você deve precisar editar
    ===================================================================== */
 const CONFIG = {
-  // 'demo' usa os dados de exemplo abaixo. Troque para 'firebase' quando
-  // a função lerDadosFirebase() estiver ligada à estrutura do app.
-  fonte: 'demo',
+  // 'firebase' lê o documento do app. 'demo' usa dados de exemplo (só para testes).
+  fonte: 'firebase',
 
-  // Projeto Firebase ONDE O APP GRAVA OS OKRs (login e dados vêm dele).
+  // Mesmo projeto e documento que o app de OKRs usa (index.html do app).
   firebase: {
-    apiKey: "AIzaSyBpb4PmclV4FDcePma-LA0pTedpG1VUCM4",
-    authDomain: "okrs-sharepoint.firebaseapp.com",
-    projectId: "okrs-sharepoint",
-    storageBucket: "okrs-sharepoint.firebasestorage.app",
-    messagingSenderId: "731797132529",
-    appId: "1:731797132529:web:7967fc389957891c20c550"
+    apiKey: "AIzaSyAQSp3dAXi8d46CUtWG7JWPcaE2CFU0iCE",
+    authDomain: "okrs---bravo.firebaseapp.com",
+    projectId: "okrs---bravo",
+    storageBucket: "okrs---bravo.firebasestorage.app",
+    messagingSenderId: "354755420417",
+    appId: "1:354755420417:web:bba8a47e813f3bc4707b00"
   },
+  colecao: 'okrsBravo',
+  documento: 'state',
+
+  // Pede o mesmo usuário e senha do app antes de mostrar o painel.
+  exigirLogin: true,
+
+  // false = busca no Firebase no máximo a cada "horasCache" (ou no botão Atualizar).
+  // true  = atualiza sozinho a cada alteração salva no app (1 leitura por alteração, por tela aberta).
+  tempoReal: false,
+  horasCache: 24,
 
   // Endereço do app, usado no botão "Abrir no app".
   urlApp: 'https://okrs---bravo.web.app/',
 
-  // De quanto em quanto tempo o painel busca dados novos no Firebase.
-  horasCache: 24,
+  // Mesmos cortes do app: acima de 90% verde, acima de 50% amarelo, até 50% vermelho.
+  semaforo: { verde: 90, amarelo: 50 },
 
-  // Cortes do semáforo (em %).
-  semaforo: { verde: 80, amarelo: 50 },
-
-  // Páginas do SharePoint: cada uma vira ?pagina=CHAVE no link do iframe.
+  // Páginas do SharePoint (?pagina=CHAVE). "head" = cargo (ou nome) do Head na Base de Dados do app.
   paginas: {
     'GERAL':     { titulo: 'Visão geral', idv: 'DBVO' },
-    'CSUA':      { titulo: 'CSUA',        idv: 'DBVO',             area: 'CSUA' },
-    'CSUM+EDFC': { titulo: 'CSUM + EDFC', idv: 'DBVO',             area: 'CSUM+EDFC' },
-    'ENGO':      { titulo: 'ENGO',        idv: 'BRAVO_OBRAS',      area: 'ENGO' },
-    'ENGE':      { titulo: 'ENGE',        idv: 'BRAVO_ENGENHARIA', area: 'ENGE' },
-    'EDFE':      { titulo: 'EDFE',        idv: 'EDIFICA',          area: 'EDFE' },
+    'CSUA':      { titulo: 'CSUA',        idv: 'DBVO',             head: 'Head CSUA' },
+    'CSUM+EDFC': { titulo: 'CSUM + EDFC', idv: 'DBVO',             head: 'Head CSUM/EDFC' },
+    'ENGO':      { titulo: 'ENGO',        idv: 'BRAVO_OBRAS',      head: 'Head ENGO' },
+    'ENGE':      { titulo: 'ENGE',        idv: 'BRAVO_ENGENHARIA', head: 'Head ENGE' },
+    'EDFE':      { titulo: 'EDFE',        idv: 'EDIFICA',          head: 'Head EDFE' },
     'EVOLUCAO':  { titulo: 'Evolução',    idv: 'DBVO',             especial: 'evolucao' }
   },
 
@@ -159,119 +165,239 @@ const CONFIG = {
 };
 
 /* =====================================================================
-   CAMADA DE DADOS
-   O painel só conhece este formato. Tudo que vier do Firebase é
-   convertido para ele em lerDadosFirebase().
-
-   { trimestre: '2026-T3',
-     bhag: { titulo, pct } | null,
-     pessoas: [ { id, nome, cargo, nivel: 'CEO'|'HEAD'|'TL'|'SL'|'SM'|'OUTRO',
-                  area, grupo, pai, pct,
-                  okrs: [ { codigo, titulo, pct, krs?: [ {titulo, meta, atual, pct, peso} ] } ] } ] }
+   REGRAS DE CÁLCULO — cópia fiel das funções do app (fieldsPct,
+   activityPct, pnPool e "responsável efetivo" da visão por responsável).
    ===================================================================== */
-const DEMO = (() => {
-  const P = (id, nome, cargo, nivel, area, grupo, pai, pct, okrs) => ({
-    id, nome, cargo, nivel, area, grupo, pai, pct,
-    okrs: okrs.split(';').map(s => { const a = s.split('|'); return { codigo: a[0], titulo: a[1], pct: +a[2] }; })
+function fieldsPct(tipo, f) {
+  if (!f) return 0;
+  const clamp = v => Math.max(0, Math.min(100, v));
+  switch (tipo) {
+    case 'selecao': return f.status === 'feito' ? 100 : 0;
+    case 'unidade':
+    case 'financeiro': {
+      const meta = parseFloat(f.meta), real = parseFloat(f.realizado);
+      if (isNaN(meta) || meta <= 0 || isNaN(real)) return 0;
+      return clamp((real / meta) * 100);
+    }
+    case 'unidade_neg':
+    case 'financeiro_neg':
+    case 'porcentagem_neg': {
+      const meta = parseFloat(f.meta), real = parseFloat(f.realizado);
+      if (isNaN(meta) || meta <= 0 || isNaN(real) || real < 0) return 0;
+      if (real === 0) return 100;
+      return clamp((meta / real) * 100);
+    }
+    case 'porcentagem':
+    default: {
+      const meta = parseFloat(f.meta), real = parseFloat(f.realizado);
+      if (!isNaN(meta) && meta > 0 && !isNaN(real)) return clamp((real / meta) * 100);
+      const p = parseFloat(f.pct);
+      return isNaN(p) ? 0 : clamp(p);
+    }
+  }
+}
+const activityPct = a => a ? fieldsPct(a.tipo, a) : 0;
+function pnPool(items) {
+  if (!items || items.length === 0) return null;
+  const tot = items.reduce((s, it) => s + (parseFloat(it.peso) || 0), 0);
+  if (tot <= 0) return items.reduce((s, it) => s + it.pct, 0) / items.length;
+  return items.reduce((s, it) => s + (parseFloat(it.peso) || 0) * it.pct, 0) / tot;
+}
+const norm = s => String(s || '').trim().replace(/\s+/g, ' ').toLowerCase();
+const umaLinha = s => String(s || '').replace(/\s*\n\s*/g, ' · ').trim();
+
+/* Converte UM período do app no formato do painel:
+   { trimestre, bhag, pessoas:[{ id, personId, nome, cargo, pai, prof, pct, okrs:[{codigo,titulo,pct,krs}] }] } */
+function converterPeriodo(per, dbData) {
+  const nodes = Array.isArray(per.nodes) ? per.nodes.filter(Boolean) : [];
+  const people = new Map((dbData || []).map(p => [p.id, p]));
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const parentOf = n => (n && n.parent && n.parent !== n.id && byId.has(n.parent)) ? n.parent : null;
+  const depth = new Map();
+  nodes.forEach(n => {
+    let d = 0, cur = n; const seen = new Set([n.id]);
+    while (parentOf(cur)) { const p = byId.get(parentOf(cur)); if (seen.has(p.id)) break; seen.add(p.id); d++; cur = p; }
+    depth.set(n.id, d);
   });
-  const t3 = [
-    P('ceo','Evandro Rodrigues','CEO','CEO','GERAL','','',19.3,'MFG 1|Garantir evolução físico-financeira de 2026|46.3;MFG 2|Garantir EBITDA de 2026|0;MFG 3|Garantir VGV global de 2026|11.6'),
-    P('marcel','Marcel Matiolli','Business Architect','OUTRO','GERAL','','ceo',59,'OKR 1|Garantir performance dos setores|82.6;OKR 2|Revisão Budget 2S26|22.2'),
-
-    P('jp','Jacqueline Pereira','Head CSUA','HEAD','CSUA','','ceo',53.3,'MF 1|Garantir mínima exposição de caixa|30;MF 2|Garantir eficiência do fluxo de caixa|58.5;MF 3|Performance do Departamento Pessoal|73.5;MF 4|Performance da Controladoria de Incorporação|60'),
-    P('ja','Jaqueline Almeida','Squad Member Tesouraria Empreendimentos','SM','CSUA','Tesouraria','jp',68.5,'OKR 1|Fechamento do caixa até 1º dia útil|94.8;OKR 2|Fluxo de caixa estruturado (3 meses)|67.5;OKR 3|Projetos de inovação|0'),
-    P('af','Ana Flávia','Squad Member Tesouraria Services','SM','CSUA','Tesouraria','jp',98,'OKR 1|Fechamento do caixa até 1º dia útil|100;OKR 2|Fluxo de caixa estruturado (3 meses)|100;OKR 3|Projetos de inovação|80'),
-    P('dl','Danielle Longo','Squad Leader Dep. Pessoal','SL','CSUA','Dep. Pessoal','jp',73.5,'OKR 1|Garantir excelência na entrega da FOPAG|97.1;OKR 2|SLA de R&S|90;OKR 3|Performance do setor|66.7;OKR 4|Projetos de inovação|40'),
-    P('am','Amanda Matsudo','Squad Member Dep. Pessoal','SM','CSUA','Dep. Pessoal','dl',91.6,'OKR 1|Qualidade da entrega dos documentos dos empreiteiros|92.5;OKR 2|SLA de R&S|90;OKR 3|Qualidade de lançamento de despesas do DP|90.7'),
-    P('smf','Sérgio Murilo','Squad Member Controladoria Incorporação','SM','CSUA','Controladoria','jp',60.2,'OKR 1|Qualidade da entrega do DI|76.6;OKR 2|Adiantar liberações de financiamento|18.8;OKR 3|Garantir prazos de atividades do PDE|79.7'),
-
-    P('bz','Beatriz Zamperlini','Head CSUM/EDFC','HEAD','CSUM+EDFC','','ceo',46,'MF 1|Maximizar conversão e rentabilidade comercial|22.7;MF 2|Gerar demanda qualificada para sustentar as metas de vendas|90.9;MF 3|Maximizar retenção, recorrência e experiência do cliente|37'),
-    P('slc','SL Comercial','Squad Leader Comercial','SL','CSUM+EDFC','Comercial','bz',46.8,'OKR 1|VGV mensal|12.3;OKR 2|Performance Inside Sales|67.8;OKR 3|Performance parcerias|98.7;OKR 4|VPL em relação à tabela vigente|0'),
-    P('ps','Pierre Silva','Squad Member Parcerias','SM','CSUM+EDFC','Comercial','slc',80.8,'OKR 1|SLA de agendamento x venda (parcerias)|100;OKR 2|Efetividade do relacionamento com corretores|61.5'),
-    P('lr','Lara Reami','Squad Leader Com&Cont','SL','CSUM+EDFC','Comunicação e conteúdo','bz',96.7,'OKR 1|Presença digital|98.9;OKR 2|Iniciativas de posicionamento de marca|100;OKR 3|Aumentar brand awareness|86.5'),
-    P('mmi','Mariana Miyamoto','Squad Member Social Mídia','SM','CSUM+EDFC','Comunicação e conteúdo','lr',100,'OKR 1|Acompanhamento de obra entregues no prazo|100;OKR 2|Relevância da conta no Instagram|100'),
-    P('rmz','Rodrigo Mizuguchi','Squad Member Design','SM','CSUM+EDFC','Comunicação e conteúdo','lr',88.3,'OKR 1|Criativos no prazo|83.4;OKR 2|Manutenção do site|100'),
-    P('rk','Rammza Kalache','Squad Leader Aquis&Nut','SL','CSUM+EDFC','Aquisição','bz',88.9,'OKR 1|Leads qualificados pelo marketing|80.7;OKR 2|Saúde financeira de aquisição|100;OKR 3|Volume de leads ao longo dos canais|92.9'),
-    P('gd','Gustavo Ducca','Tribe Leader Customer Experience','TL','CSUM+EDFC','Customer experience','bz',53.3,'OKR 1|VGV do canal recompra|0;OKR 2|Taxa de inadimplência|57.2;OKR 3|Desempenho do trade marketing|82.2'),
-    P('df','Danieli Fernanda','Squad Member Pós-vendas','SM','CSUM+EDFC','Customer experience','gd',87.9,'OKR 1|Engajamento de clientes com o pós-venda|89.3;OKR 2|Solicitações de clientes finalizadas no mês|85.9'),
-    P('gs','Gabriel Souza','Squad Member Marketing','SM','CSUM+EDFC','Customer experience','gd',98.6,'OKR 1|Manutenção da loja|97.7;OKR 2|Relacionamento com fornecedores|100'),
-
-    P('he','Head ENGO','Head ENGO','HEAD','ENGO','','ceo',71.3,'MF 1|Avanço físico-financeiro de todas as obras|53.1;MF 2|Garantir custo de todas as obras|83.9;MF 3|Aderência à SGQ, SST e MA de todas as obras|82.8'),
-    P('jv','João Victor Souza','Tribe Leader Obras','TL','ENGO','Obras','he',62.6,'OKR 1|Avanço físico-financeiro de todas as obras|38.5;OKR 2|Custo de obra ORxRE de todas as obras|93.5;OKR 3|Aderência à SGQ, SST e certificações|76.6'),
-    P('im','Ian Machado','Squad Leader BE06','SL','ENGO','Obras','jv',78.1,'OKR 1|Avanço físico-financeiro|60.6;OKR 2|Garantir custo do previsto ao término|96.5;OKR 3|Aderência à SGQ, SST e certificações|94.5'),
-    P('ms','Matheus Silva','Squad Leader BE03','SL','ENGO','Obras','jv',55.2,'OKR 1|Avanço físico-financeiro|30.5;OKR 2|Garantir custo do previsto ao término|89.9;OKR 3|Aderência à SGQ, SST e certificações|65.3'),
-    P('dg','Diego Gomes','Squad Leader BE01','SL','ENGO','Obras','jv',67.5,'OKR 1|Avanço físico-financeiro|28.7;OKR 2|Garantir custo do previsto ao término|94;OKR 3|Aderência à SGQ, SST e certificações|70.1'),
-    P('pst','Pedro Staub','Tribe Leader Suprimentos','TL','ENGO','Suprimentos','he',60.4,'OKR 1|SLA de aquisição|73.2;OKR 2|Saving ORxRE|39.4;OKR 3|Projetos de inovação do setor de Suprimentos|60'),
-    P('lm','Lucas Matos','Squad Leader Suprimentos','SL','ENGO','Suprimentos','pst',57.6,'OKR 1|SLA de aquisição classe A|58.3;OKR 2|Saving ORxRE materiais curva A|56.2;OKR 3|Performance da equipe|57.8'),
-    P('mg','Murilo Guirelli','Squad Member Suprimentos','SM','ENGO','Suprimentos','lm',81.5,'OKR 1|SLA de aquisição classe B|77.6;OKR 2|Saving ORxRE materiais curva B|75.6;OKR 3|Projeto de controle de cotação|100'),
-    P('fm','Felipe Moldoch','Squad Member Suprimentos','SM','ENGO','Suprimentos','lm',71.7,'OKR 1|SLA de aquisição classe C|51.1;OKR 2|Retrabalho nos processos de compras|100;OKR 3|Projeto de locação de ferramentas|90'),
-    P('mv','Mayla Volverde','Tribe Leader SGQ&AT&SST','TL','ENGO','SGQ, AT e SST','he',82.6,'OKR 1|Garantia do SGQO|94.5;OKR 2|Garantia SST e meio ambiente|69.2;OKR 3|Qualidade da assistência técnica|76.8'),
-    P('ef','Eloísa Ferreira','Squad Leader SGQ & AT','SL','ENGO','SGQ, AT e SST','mv',87.2,'OKR 1|Atendimento checklist de qualidade|95.7;OKR 2|Qualidade do atendimento de assistência técnica|70.2;OKR 3|Performance do time|91.6'),
-    P('lc','Lorena Cesconeto','Squad Member SGQ','SM','ENGO','SGQ, AT e SST','ef',97.7,'OKR 1|Atendimento checklist de qualidade|95.5;OKR 2|Prazo de NC de qualidade|100;OKR 3|Sistema de conferência|100'),
-    P('aa','Ademar Almeida','Squad Member Assistência Técnica','SM','ENGO','SGQ, AT e SST','ef',96.9,'OKR 1|Aderência ao cronograma|95.6;OKR 2|Coeficiente de resolução primária|100'),
-    P('lv','Luísa Valentin','Squad Member SST & MA','SM','ENGO','SGQ, AT e SST','mv',78.7,'OKR 1|Aderência à certificação|69.3;OKR 2|NC sem planos de ação|70.1;OKR 3|Prazo de NC de qualidade|100;OKR 4|Sistema de conferência|100'),
-    P('sl','Suzana Lima','Técnico de Segurança do Trabalho BE03','SM','ENGO','SGQ, AT e SST','mv',64.9,'OKR 1|NC da auditoria externa|40.6;OKR 2|% de NC corrigidas no prazo|100;OKR 3|Aderência à certificação|73'),
-    P('rs','Reginaldo Souza','Técnico de Segurança do Trabalho BE01','SM','ENGO','SGQ, AT e SST','mv',60.7,'OKR 1|NC da auditoria externa|40.6;OKR 2|% de NC corrigidas no prazo|90;OKR 3|Aderência à certificação|67'),
-
-    P('ge','Gabriel Esperandio','Head ENGE','HEAD','ENGE','','ceo',86.1,'MF 1|Garantir previsibilidade e velocidade no desenvolvimento dos empreend.|83.4;MF 2|Garantir excelência técnica e redução de retrabalho|81.3;MF 3|Garantir quantitativos dos orçamentos|100'),
-    P('rf','Rafaella Souza','Squad Member Gestão BIM','SM','ENGE','Gestão BIM','ge',94.2,'OKR 1|Eficiência operacional|90.9;OKR 2|Garantir compatibilização de projetos|89.7;OKR 3|Satisfação do cliente|100;OKR 4|Aderência ao orçamento|100'),
-    P('mc','Milena Chierrito','Tribe Leader ARQ&LEG','TL','ENGE','Arquitetura e legalização','ge',79.2,'OKR 1|Qualidade de atendimento a clientes|90.9;OKR 2|Performance de arquitetura|76.7;OKR 3|Performance de legalização|66.2'),
-    P('sf','Sofia Friedrich','Squad Member Arquitetura','SM','ENGE','Arquitetura e legalização','mc',76.7,'OKR 1|Entrega projeto executivo PRC|78.4;OKR 2|Qualidade de atendimento a clientes|100;OKR 3|Carteira de entregáveis de arquitetura executiva|50'),
-    P('ih','Isabela Higuti','Squad Member Legalização','SM','ENGE','Arquitetura e legalização','mc',66.2,'OKR 1|Entrega do BE Garden|49.4;OKR 2|Quantidade de processos aprovados no prazo|80;OKR 3|Garantir legalização BE04|68;OKR 4|Projeto da Central de Serviços de Legalização|100'),
-
-    P('bc','Beatriz Ciriaco','Head EDFE','HEAD','EDFE','','ceo',64.1,'MF 1|Garantir qualidade da entrega do BE01|46.7;MF 2|Desenvolvimento de produto BE04|55;MF 3|Garantir qualidade do setor de Sales Enablement & BA|93.6'),
-    P('mp','Mariana Panza','Tribe Leader Produto&SE','TL','EDFE','Produto e Sales Enablement','bc',69.7,'OKR 1|Garantir qualidade da entrega do BE01|66.7;OKR 2|Desenvolvimento de produto BE04|60;OKR 3|Garantir qualidade do setor de Sales Enablement & BA|95.2'),
-    P('ha','Hellen Airy','Squad Member Sales Enablement','SM','EDFE','Produto e Sales Enablement','mp',96.8,'OKR 1|Treinamentos de produto|100;OKR 2|Garantir entrega do Comitê de Vendas|100;OKR 3|Garantir qualidade do DV|84')
-  ];
-  // T2 FICTÍCIO, só para visualizar a página de evolução. Não são dados reais.
-  const varia = (txt, v) => { let h = 0; for (const c of txt) h = (h * 31 + c.charCodeAt(0)) % 997; return Math.max(0, Math.min(100, Math.round((v - ((h % 36) - 14)) * 10) / 10)); };
-  const t2 = t3.map(p => ({ ...p, pct: varia(p.id, p.pct), okrs: p.okrs.map(o => ({ ...o, pct: varia(p.id + o.codigo, o.pct) })) }));
-  return {
-    '2026-T3': { trimestre: '2026-T3', bhag: { titulo: 'Lançar 30 empreendimentos até 2032', pct: 16.7 }, pessoas: t3 },
-    '2026-T2': { trimestre: '2026-T2', bhag: { titulo: 'Lançar 30 empreendimentos até 2032', pct: 14.2 }, pessoas: t2 }
+  const kids = new Map();
+  nodes.forEach(n => { const p = parentOf(n); if (p) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(n.id); } });
+  const order = [], vis = new Set();
+  const walk = id => { if (vis.has(id)) return; vis.add(id); order.push(byId.get(id)); (kids.get(id) || []).forEach(walk); };
+  nodes.filter(n => !parentOf(n)).forEach(n => walk(n.id));
+  nodes.forEach(n => walk(n.id));
+  const effResp = new Map();
+  const effOf = n => {
+    if (effResp.has(n.id)) return effResp.get(n.id);
+    let cur = n, r = ''; const seen = new Set();
+    while (cur && !seen.has(cur.id)) { seen.add(cur.id); if (cur.responsible) { r = cur.responsible; break; } cur = parentOf(cur) ? byId.get(parentOf(cur)) : null; }
+    effResp.set(n.id, r); return r;
   };
-})();
+  const groups = [], gByKey = new Map(), gOf = new Map();
+  order.forEach(n => {
+    const resp = effOf(n);
+    const key = resp ? 'r:' + resp : 'n:' + n.id;
+    let g = gByKey.get(key);
+    if (!g) { g = { key, personId: resp || '', nodes: [], top: n, depth: depth.get(n.id) }; gByKey.set(key, g); groups.push(g); }
+    g.nodes.push(n); gOf.set(n.id, g);
+    if (depth.get(n.id) < g.depth) { g.depth = depth.get(n.id); g.top = n; }
+  });
+  const paiDe = g => { const pn = parentOf(g.top); const pg = pn ? gOf.get(pn) : null; return pg && pg !== g ? pg.key : ''; };
+  const linhasDe = n => (Array.isArray(n.checklist) ? n.checklist : []).filter(Boolean)
+    .map(a => ({ a, pct: activityPct(a), peso: parseFloat(a.peso) || 0 }));
+  const objetivo = n => {
+    const rs = linhasDe(n);
+    const rot = umaLinha(n.label), sub = umaLinha(n.subtitle);
+    return {
+      id: n.id, codigo: sub ? rot : '', titulo: sub || rot || '(sem título)', pct: pnPool(rs),
+      krs: rs.map(r => ({
+        titulo: umaLinha(r.a.text) || '(sem descrição)', tipo: r.a.tipo || 'porcentagem',
+        meta: r.a.meta, realizado: r.a.realizado, unidade: r.a.unidade, status: r.a.status,
+        peso: r.a.peso, pct: r.pct
+      }))
+    };
+  };
+  const todas = groups.map(g => {
+    const p = g.personId ? people.get(g.personId) : null;
+    const rows = g.nodes.flatMap(linhasDe);
+    return {
+      id: g.key, personId: g.personId,
+      nome: g.personId ? (p ? (umaLinha(p.nome) || '(sem nome)') : '(responsável removido)') : umaLinha(g.top.label) || '(sem título)',
+      cargo: p ? umaLinha(p.cargo) : '', nivelTxt: p ? umaLinha(p.nivel) : '',
+      pai: paiDe(g), prof: g.depth, pct: pnPool(rows), okrs: g.nodes.map(objetivo)
+    };
+  });
+  // BHAG = bloco do topo sem responsável (ex.: "Estratégia Global"). Fica como indicador, não como pessoa.
+  const topoSemResp = todas.find(x => !x.personId && !x.pai);
+  const bhag = topoSemResp ? { titulo: topoSemResp.okrs[0] ? (topoSemResp.okrs[0].titulo) : topoSemResp.nome, pct: topoSemResp.pct } : null;
+  const pessoas = todas.filter(x => x !== topoSemResp).map(x => ({ ...x, pai: x.pai === (topoSemResp && topoSemResp.id) ? '' : x.pai }));
+  return { trimestre: chaveTri(per), bhag, pessoas };
+}
+const chaveTri = p => `${p.ano}-T${p.trimestre}`;
 
+/* =====================================================================
+   LEITURA DOS DADOS
+   ===================================================================== */
 let _fb = null;
 async function iniciarFirebase() {
   if (_fb) return _fb;
   const v = '10.12.2';
   const appMod = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-app.js`);
-  const authMod = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-auth.js`);
-  const fsMod = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore.js`);
+  const fs = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore.js`);
   const app = appMod.initializeApp(CONFIG.firebase);
-  _fb = { auth: authMod.getAuth(app), db: fsMod.getFirestore(app), authMod, fsMod };
+  const db = fs.getFirestore(app);
+  _fb = { fs, ref: fs.doc(db, CONFIG.colecao, CONFIG.documento) };
   return _fb;
 }
-
-async function listarTrimestres() {
-  if (CONFIG.fonte === 'demo') return Object.keys(DEMO).sort().reverse();
-  // TODO (quando o HTML do app chegar): ler os trimestres existentes no Firestore.
-  throw new Error('Leitura dos trimestres no Firebase ainda não foi ligada.');
+async function lerEstadoBruto() {
+  if (CONFIG.fonte === 'demo') return DEMO_ESTADO();
+  const { fs, ref } = await iniciarFirebase();
+  const snap = await fs.getDoc(ref);
+  return snap.exists() ? (snap.data() || {}) : {};
 }
-
-async function lerDadosFirebase(trimestre) {
-  // TODO (quando o HTML do app chegar): ler as coleções do app e converter
-  // para o formato descrito acima. Exemplo do que vai entrar aqui:
-  //   const { db, fsMod } = await iniciarFirebase();
-  //   const snap = await fsMod.getDocs(fsMod.query(fsMod.collection(db, 'okrs'), fsMod.where('trimestre', '==', trimestre)));
-  //   return { trimestre, bhag, pessoas: converter(snap) };
-  throw new Error('Leitura dos OKRs no Firebase ainda não foi ligada.');
+function prepararPacote(estado) {
+  const dbData = Array.isArray(estado.dbData) ? estado.dbData : [];
+  const periodos = {};
+  (Array.isArray(estado.periods) ? estado.periods : []).forEach(per => {
+    if (!per || per.ano == null || per.trimestre == null) return;
+    periodos[chaveTri(per)] = converterPeriodo(per, dbData);
+  });
+  // a senha nunca é guardada no navegador: só os dados já convertidos
+  return { em: Date.now(), periodos };
 }
-
-async function obterDados(trimestre, forcar) {
-  const chave = 'painel-okrs:' + trimestre;
+const CHAVE_CACHE = 'painel-okrs:v2';
+async function obterPacote(forcar) {
   if (!forcar) {
     try {
-      const c = JSON.parse(localStorage.getItem(chave) || 'null');
-      if (c && Date.now() - c.em < CONFIG.horasCache * 3600e3) return c;
+      const c = JSON.parse(localStorage.getItem(CHAVE_CACHE) || 'null');
+      if (c && c.periodos && Date.now() - c.em < CONFIG.horasCache * 3600e3) return c;
     } catch (e) {}
   }
-  const dados = CONFIG.fonte === 'demo' ? structuredClone(DEMO[trimestre]) : await lerDadosFirebase(trimestre);
-  if (!dados) return null;
-  const pacote = { em: Date.now(), dados };
-  try { localStorage.setItem(chave, JSON.stringify(pacote)); } catch (e) {}
+  const pacote = prepararPacote(await lerEstadoBruto());
+  try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(pacote)); } catch (e) {}
   return pacote;
+}
+async function escutarTempoReal(aoMudar) {
+  const { fs, ref } = await iniciarFirebase();
+  return fs.onSnapshot(ref, snap => {
+    const pacote = prepararPacote(snap.exists() ? (snap.data() || {}) : {});
+    try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(pacote)); } catch (e) {}
+    aoMudar(pacote);
+  }, err => console.error('Firestore:', err));
+}
+// Ordena trimestres do mais recente para o mais antigo
+const ordenarTris = ks => ks.sort((a, b) => { const [ya, qa] = a.split('-T').map(Number), [yb, qb] = b.split('-T').map(Number); return yb - ya || qb - qa; });
+// Trimestre inicial: o mais recente que já tem algum resultado lançado
+function triPadrao(pacote, tris) {
+  return tris.find(t => (pacote.periodos[t].pessoas || []).some(p => p.pct != null)) || tris[0];
+}
+
+/* =====================================================================
+   DADOS DE DEMONSTRAÇÃO (só quando CONFIG.fonte = 'demo').
+   Montados no MESMO formato do documento do app, para testar a conversão.
+   ===================================================================== */
+function DEMO_ESTADO() {
+  const L = [
+    ['ceo','Evandro Rodrigues','CEO','','MFG 1|Garantir evolução físico-financeira de 2026|46.3;MFG 2|Garantir EBITDA de 2026|0;MFG 3|Garantir VGV global de 2026|11.6'],
+    ['marcel','Marcel Matiolli','Business Architect','ceo','OKR 1|Garantir performance dos setores|82.6;OKR 2|Revisão Budget 2S26|22.2'],
+    ['jp','Jacqueline Pereira','Head CSUA','ceo','MF 1|Garantir mínima exposição de caixa|30;MF 2|Garantir eficiência do fluxo de caixa|58.5;MF 3|Performance do Departamento Pessoal|73.5;MF 4|Performance da Controladoria de Incorporação|60'],
+    ['ja','Jaqueline Almeida','Squad Member Tesouraria Empreendimentos','jp','OKR 1|Fechamento do caixa até 1º dia útil|94.8;OKR 2|Fluxo de caixa estruturado (3 meses)|67.5;OKR 3|Projetos de inovação|0'],
+    ['af','Ana Flávia','Squad Member Tesouraria Services','jp','OKR 1|Fechamento do caixa até 1º dia útil|100;OKR 2|Fluxo de caixa estruturado (3 meses)|100;OKR 3|Projetos de inovação|80'],
+    ['dl','Danielle Longo','Squad Leader Dep. Pessoal','jp','OKR 1|Garantir excelência na entrega da FOPAG|97.1;OKR 2|SLA de R&S|90;OKR 3|Performance do setor|66.7;OKR 4|Projetos de inovação|40'],
+    ['am','Amanda Matsudo','Squad Member Dep. Pessoal','dl','OKR 1|Qualidade da entrega dos documentos dos empreiteiros|92.5;OKR 2|SLA de R&S|90;OKR 3|Qualidade de lançamento de despesas do DP|90.7'],
+    ['smf','Sérgio Murilo','Squad Member Controladoria Incorporação','jp','OKR 1|Qualidade da entrega do DI|76.6;OKR 2|Adiantar liberações de financiamento|18.8;OKR 3|Garantir prazos de atividades do PDE|79.7'],
+    ['bz','Beatriz Zamperlini','Head CSUM/EDFC','ceo','MF 1|Maximizar conversão e rentabilidade comercial|22.7;MF 2|Gerar demanda qualificada para sustentar as metas de vendas|90.9;MF 3|Maximizar retenção, recorrência e experiência do cliente|37'],
+    ['slc','SL Comercial','Squad Leader Comercial','bz','OKR 1|VGV mensal|12.3;OKR 2|Performance Inside Sales|67.8;OKR 3|Performance parcerias|98.7;OKR 4|VPL em relação à tabela vigente|0'],
+    ['ps','Pierre Silva','Squad Member Parcerias','slc','OKR 1|SLA de agendamento x venda (parcerias)|100;OKR 2|Efetividade do relacionamento com corretores|61.5'],
+    ['lr','Lara Reami','Squad Leader Com&Cont','bz','OKR 1|Presença digital|98.9;OKR 2|Iniciativas de posicionamento de marca|100;OKR 3|Aumentar brand awareness|86.5'],
+    ['mmi','Mariana Miyamoto','Squad Member Social Mídia','lr','OKR 1|Acompanhamento de obra entregues no prazo|100;OKR 2|Relevância da conta no Instagram|100'],
+    ['rmz','Rodrigo Mizuguchi','Squad Member Design','lr','OKR 1|Criativos no prazo|83.4;OKR 2|Manutenção do site|100'],
+    ['rk','Rammza Kalache','Squad Leader Aquis&Nut','bz','OKR 1|Leads qualificados pelo marketing|80.7;OKR 2|Saúde financeira de aquisição|100;OKR 3|Volume de leads ao longo dos canais|92.9'],
+    ['gd','Gustavo Ducca','Tribe Leader Customer Experience','bz','OKR 1|VGV do canal recompra|0;OKR 2|Taxa de inadimplência|57.2;OKR 3|Desempenho do trade marketing|82.2'],
+    ['df','Danieli Fernanda','Squad Member Pós-vendas','gd','OKR 1|Engajamento de clientes com o pós-venda|89.3;OKR 2|Solicitações de clientes finalizadas no mês|85.9'],
+    ['gs','Gabriel Souza','Squad Member Marketing','gd','OKR 1|Manutenção da loja|97.7;OKR 2|Relacionamento com fornecedores|100'],
+    ['he','Head ENGO','Head ENGO','ceo','MF 1|Avanço físico-financeiro de todas as obras|53.1;MF 2|Garantir custo de todas as obras|83.9;MF 3|Aderência à SGQ, SST e MA de todas as obras|82.8'],
+    ['jv','João Victor Souza','Tribe Leader Obras','he','OKR 1|Avanço físico-financeiro de todas as obras|38.5;OKR 2|Custo de obra ORxRE de todas as obras|93.5;OKR 3|Aderência à SGQ, SST e certificações|76.6'],
+    ['im','Ian Machado','Squad Leader BE06','jv','OKR 1|Avanço físico-financeiro|60.6;OKR 2|Garantir custo do previsto ao término|96.5;OKR 3|Aderência à SGQ, SST e certificações|94.5'],
+    ['ms','Matheus Silva','Squad Leader BE03','jv','OKR 1|Avanço físico-financeiro|30.5;OKR 2|Garantir custo do previsto ao término|89.9;OKR 3|Aderência à SGQ, SST e certificações|65.3'],
+    ['dg','Diego Gomes','Squad Leader BE01','jv','OKR 1|Avanço físico-financeiro|28.7;OKR 2|Garantir custo do previsto ao término|94;OKR 3|Aderência à SGQ, SST e certificações|70.1'],
+    ['pst','Pedro Staub','Tribe Leader Suprimentos','he','OKR 1|SLA de aquisição|73.2;OKR 2|Saving ORxRE|39.4;OKR 3|Projetos de inovação do setor de Suprimentos|60'],
+    ['lm','Lucas Matos','Squad Leader Suprimentos','pst','OKR 1|SLA de aquisição classe A|58.3;OKR 2|Saving ORxRE materiais curva A|56.2;OKR 3|Performance da equipe|57.8'],
+    ['mg','Murilo Guirelli','Squad Member Suprimentos','lm','OKR 1|SLA de aquisição classe B|77.6;OKR 2|Saving ORxRE materiais curva B|75.6;OKR 3|Projeto de controle de cotação|100'],
+    ['fm','Felipe Moldoch','Squad Member Suprimentos','lm','OKR 1|SLA de aquisição classe C|51.1;OKR 2|Retrabalho nos processos de compras|100;OKR 3|Projeto de locação de ferramentas|90'],
+    ['mv','Mayla Volverde','Tribe Leader SGQ&AT&SST','he','OKR 1|Garantia do SGQO|94.5;OKR 2|Garantia SST e meio ambiente|69.2;OKR 3|Qualidade da assistência técnica|76.8'],
+    ['ef','Eloísa Ferreira','Squad Leader SGQ & AT','mv','OKR 1|Atendimento checklist de qualidade|95.7;OKR 2|Qualidade do atendimento de assistência técnica|70.2;OKR 3|Performance do time|91.6'],
+    ['lc','Lorena Cesconeto','Squad Member SGQ','ef','OKR 1|Atendimento checklist de qualidade|95.5;OKR 2|Prazo de NC de qualidade|100;OKR 3|Sistema de conferência|100'],
+    ['aa','Ademar Almeida','Squad Member Assistência Técnica','ef','OKR 1|Aderência ao cronograma|95.6;OKR 2|Coeficiente de resolução primária|100'],
+    ['lv','Luísa Valentin','Squad Member SST & MA','mv','OKR 1|Aderência à certificação|69.3;OKR 2|NC sem planos de ação|70.1;OKR 3|Prazo de NC de qualidade|100;OKR 4|Sistema de conferência|100'],
+    ['sl','Suzana Lima','Técnico de Segurança do Trabalho BE03','mv','OKR 1|NC da auditoria externa|40.6;OKR 2|% de NC corrigidas no prazo|100;OKR 3|Aderência à certificação|73'],
+    ['rs','Reginaldo Souza','Técnico de Segurança do Trabalho BE01','mv','OKR 1|NC da auditoria externa|40.6;OKR 2|% de NC corrigidas no prazo|90;OKR 3|Aderência à certificação|67'],
+    ['ge','Gabriel Esperandio','Head ENGE','ceo','MF 1|Garantir previsibilidade e velocidade no desenvolvimento dos empreend.|83.4;MF 2|Garantir excelência técnica e redução de retrabalho|81.3;MF 3|Garantir quantitativos dos orçamentos|100'],
+    ['rf','Rafaella Souza','Squad Member Gestão BIM','ge','OKR 1|Eficiência operacional|90.9;OKR 2|Garantir compatibilização de projetos|89.7;OKR 3|Satisfação do cliente|100;OKR 4|Aderência ao orçamento|100'],
+    ['mc','Milena Chierrito','Tribe Leader ARQ&LEG','ge','OKR 1|Qualidade de atendimento a clientes|90.9;OKR 2|Performance de arquitetura|76.7;OKR 3|Performance de legalização|66.2'],
+    ['sf','Sofia Friedrich','Squad Member Arquitetura','mc','OKR 1|Entrega projeto executivo PRC|78.4;OKR 2|Qualidade de atendimento a clientes|100;OKR 3|Carteira de entregáveis de arquitetura executiva|50'],
+    ['ih','Isabela Higuti','Squad Member Legalização','mc','OKR 1|Entrega do BE Garden|49.4;OKR 2|Quantidade de processos aprovados no prazo|80;OKR 3|Garantir legalização BE04|68;OKR 4|Projeto da Central de Serviços de Legalização|100'],
+    ['bc','Beatriz Ciriaco','Head EDFE','ceo','MF 1|Garantir qualidade da entrega do BE01|46.7;MF 2|Desenvolvimento de produto BE04|55;MF 3|Garantir qualidade do setor de Sales Enablement & BA|93.6'],
+    ['mp','Mariana Panza','Tribe Leader Produto&SE','bc','OKR 1|Garantir qualidade da entrega do BE01|66.7;OKR 2|Desenvolvimento de produto BE04|60;OKR 3|Garantir qualidade do setor de Sales Enablement & BA|95.2'],
+    ['ha','Hellen Airy','Squad Member Sales Enablement','mp','OKR 1|Treinamentos de produto|100;OKR 2|Garantir entrega do Comitê de Vendas|100;OKR 3|Garantir qualidade do DV|84']
+  ];
+  const varia = (txt, v) => { let h = 0; for (const c of txt) h = (h * 31 + c.charCodeAt(0)) % 997; return Math.max(0, Math.min(100, Math.round((v - ((h % 36) - 14)) * 10) / 10)); };
+  const periodo = (ano, tri, f) => {
+    const nodes = [{ id: 'bhag', label: 'BHAG', subtitle: 'Lançar 30 empreendimentos até 2032', parent: null, responsible: '',
+      checklist: [{ id: 'k', text: 'Empreendimentos lançados', tipo: 'unidade', peso: 1, meta: '30', realizado: String(f('bhag', 5)) }] }];
+    const primeiro = {};
+    L.forEach(([id, , , pai, okrs]) => okrs.split(';').forEach((s, i) => {
+      const [cod, tit, pct] = s.split('|');
+      const nid = id + '_' + i;
+      if (i === 0) primeiro[id] = nid;
+      nodes.push({ id: nid, label: cod, subtitle: tit, parent: pai ? primeiro[pai] : 'bhag', responsible: id,
+        checklist: [{ id: nid + '_k', text: 'Indicador de exemplo', tipo: 'porcentagem', peso: 1, meta: '100', realizado: String(f(nid, +pct)) }] });
+    }));
+    return { id: 'p' + ano + tri, ano, trimestre: tri, nodes };
+  };
+  return {
+    dbData: L.map(([id, nome, cargo]) => ({ id, nome, cargo, nivel: '' })),
+    periods: [periodo(2026, 3, (k, v) => v), periodo(2026, 2, (k, v) => varia(k, v))]
+  };
 }
 
 /* =====================================================================
@@ -283,31 +409,32 @@ const S = {
   apres: qs.get('modo') === 'apresentacao',
   vis: qs.get('vis') || 'arvore',
   sem: true,
-  tri: null, tris: [], pacote: null, anterior: null,
-  auto: null
+  tri: null, tris: [], pacote: null,
+  auto: null, ouvinte: null
 };
 if (!CONFIG.paginas[S.pagina]) S.pagina = 'GERAL';
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
-const NIVEL = { CEO: 0, HEAD: 1, TL: 2, SL: 3, SM: 4, OUTRO: 5 };
 
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const fmt = v => (v == null || isNaN(v)) ? '–' : (Math.round(v * 10) / 10).toFixed(1).replace('.', ',') + '%';
 const fmt0 = v => (v == null || isNaN(v)) ? '–' : Math.round(v) + '%';
 const triLabel = t => { const m = /^(\d{4})-?T(\d)$/i.exec(t || ''); return m ? `T${m[2]} · ${m[1]}` : t; };
+const rotObj = o => (o.codigo ? o.codigo + ' · ' : '') + o.titulo;
 const hexRgb = h => [1, 3, 5].map(i => parseInt(h.substr(i, 2), 16)).join(',');
-const corSem = v => v >= CONFIG.semaforo.verde ? 'var(--verde)' : v >= CONFIG.semaforo.amarelo ? 'var(--amarelo)' : 'var(--vermelho)';
+const faixa = v => v == null ? 0 : v > CONFIG.semaforo.verde ? 3 : v > CONFIG.semaforo.amarelo ? 2 : 1;
+const corSem = v => ['var(--trilho)', 'var(--vermelho)', 'var(--amarelo)', 'var(--verde)'][faixa(v)];
 const corBarra = v => S.sem ? corSem(v) : 'var(--ac)';
 const barra = v => `<div class="trilho"><i style="width:${Math.max(0, Math.min(100, v || 0))}%;background:${corBarra(v)}"></i></div>`;
 function corCelula(v) {
+  if (v == null) return ['#F4F4F4', 'var(--cinza-escuro)'];
   if (S.sem) {
-    const k = v >= CONFIG.semaforo.verde ? ['46,125,50', '#1B5E20'] : v >= CONFIG.semaforo.amarelo ? ['217,164,0', '#6B4F00'] : ['198,40,40', '#8E1B1B'];
+    const k = [null, ['198,40,40', '#8E1B1B'], ['217,164,0', '#6B4F00'], ['46,125,50', '#1B5E20']][faixa(v)];
     return [`rgba(${k[0]},.18)`, k[1]];
   }
   const a = 0.08 + Math.max(0, Math.min(100, v)) / 100 * 0.82;
   return [`rgba(var(--ac-rgb),${a.toFixed(2)})`, a > 0.55 ? 'var(--on-ac)' : 'var(--preto)'];
 }
-
 function aplicarIdv(pagina) {
   const idv = CONFIG.idv[CONFIG.paginas[pagina].idv];
   const r = document.documentElement.style;
@@ -315,47 +442,56 @@ function aplicarIdv(pagina) {
   r.setProperty('--ac-rgb', hexRgb(idv.destaque));
   return idv;
 }
+const dadosTri = t => S.pacote && S.pacote.periodos[t] ? S.pacote.periodos[t] : null;
+const triAnterior = () => S.tris[S.tris.indexOf(S.tri) + 1] || null;
 
 /* =====================================================================
-   MONTAGEM DO MODELO DE CADA PÁGINA (a partir dos dados, sem nada fixo)
+   MODELO DE CADA PÁGINA (montado a partir dos dados, nada fixo)
    ===================================================================== */
+const paginasArea = () => Object.keys(CONFIG.paginas).filter(k => CONFIG.paginas[k].head);
+function acharHead(pessoas, pagina) {
+  const alvo = norm(CONFIG.paginas[pagina].head);
+  const cands = pessoas.filter(p => p.personId);
+  return cands.find(p => norm(p.cargo) === alvo) || cands.find(p => norm(p.nome) === alvo)
+    || cands.find(p => norm(p.cargo).includes(alvo)) || null;
+}
+function mapaHeads(pessoas) {
+  const m = new Map();
+  paginasArea().forEach(k => { const h = acharHead(pessoas, k); if (h && !m.has(h.id)) m.set(h.id, k); });
+  return m;
+}
 function modeloPagina(dados, pagina) {
   const cfg = CONFIG.paginas[pagina];
   const pessoas = dados.pessoas;
-  const porId = Object.fromEntries(pessoas.map(p => [p.id, p]));
-  const filhos = id => pessoas.filter(p => p.pai === id).sort((a, b) => (NIVEL[a.nivel] ?? 9) - (NIVEL[b.nivel] ?? 9));
+  const filhos = id => pessoas.filter(p => p.pai === id);
+  const heads = mapaHeads(pessoas);
 
-  if (!cfg.area) {
-    const raiz = pessoas.find(p => p.nivel === 'CEO');
-    const heads = pessoas.filter(p => p.nivel === 'HEAD');
-    const ordemAreas = Object.values(CONFIG.paginas).map(p => p.area).filter(Boolean);
-    heads.sort((a, b) => ordemAreas.indexOf(a.area) - ordemAreas.indexOf(b.area));
-    const diretos = raiz ? filhos(raiz.id).filter(p => p.nivel !== 'HEAD') : [];
-    const grupos = heads.map(h => ({ nome: tituloArea(h.area), itens: [{ p: h, nivel: 0 }], link: paginaDaArea(h.area) }));
+  if (!cfg.head) {
+    const comPessoa = pessoas.filter(p => p.personId);
+    const raiz = comPessoa.slice().sort((a, b) => a.prof - b.prof)[0];
+    if (!raiz) return { raiz: null };
+    const ordem = paginasArea();
+    const hs = [...heads.keys()].map(id => pessoas.find(p => p.id === id)).filter(Boolean)
+      .sort((a, b) => ordem.indexOf(heads.get(a.id)) - ordem.indexOf(heads.get(b.id)));
+    const diretos = filhos(raiz.id).filter(p => !heads.has(p.id));
+    const grupos = hs.map(h => ({ nome: CONFIG.paginas[heads.get(h.id)].titulo, itens: [{ p: h, nivel: 0 }] }));
     if (diretos.length) grupos.push({ nome: 'Ligados ao CEO', itens: diretos.map(p => ({ p, nivel: 0 })) });
-    return { raiz, grupos, todas: [raiz, ...heads, ...diretos].filter(Boolean), bhag: dados.bhag };
+    return { raiz, grupos, todas: [raiz, ...hs, ...diretos], bhag: dados.bhag, heads };
   }
 
-  const raiz = pessoas.find(p => p.nivel === 'HEAD' && p.area === cfg.area);
-  if (!raiz) return { raiz: null, grupos: [], todas: [] };
-  const lista = [];
-  (function desce(id, nivel) { for (const f of filhos(id)) { if (f.area && f.area !== cfg.area) continue; lista.push({ p: f, nivel }); desce(f.id, nivel + 1); } })(raiz.id, 0);
-  // inclui quem é da área mas ainda não tem líder ligado
-  pessoas.filter(p => p.area === cfg.area && p !== raiz && !lista.some(i => i.p === p)).forEach(p => lista.push({ p, nivel: 0 }));
-  const grupos = [];
-  for (const it of lista) {
-    const nome = it.p.grupo || 'Outros';
-    let g = grupos.find(x => x.nome === nome);
-    if (!g) grupos.push(g = { nome, itens: [] });
-    g.itens.push(it);
-  }
-  const ordemGrupo = n => pessoas.findIndex(p => p.area === cfg.area && (p.grupo || 'Outros') === n);
-  grupos.sort((a, b) => ordemGrupo(a.nome) - ordemGrupo(b.nome));
-  for (const g of grupos) { const min = Math.min(...g.itens.map(i => i.nivel)); g.itens.forEach(i => i.nivel -= min); }
-  return { raiz, grupos, todas: [raiz, ...lista.map(i => i.p)], porId };
+  const raiz = acharHead(pessoas, pagina);
+  if (!raiz) return { raiz: null };
+  const grupos = filhos(raiz.id).map(f => {
+    const itens = [];
+    (function desce(p, nivel, vistos) {
+      if (vistos.has(p.id)) return; vistos.add(p.id);
+      itens.push({ p, nivel });
+      filhos(p.id).forEach(k => desce(k, nivel + 1, vistos));
+    })(f, 0, new Set([raiz.id]));
+    return { nome: f.cargo || f.nome, itens };
+  });
+  return { raiz, grupos, todas: [raiz, ...grupos.flatMap(g => g.itens.map(i => i.p))], heads };
 }
-const paginaDaArea = area => Object.keys(CONFIG.paginas).find(k => CONFIG.paginas[k].area === area);
-const tituloArea = area => { const k = paginaDaArea(area); return k ? CONFIG.paginas[k].titulo : area; };
 
 /* =====================================================================
    RENDERIZAÇÃO
@@ -365,47 +501,43 @@ const reg = p => { let i = REG.indexOf(p); if (i < 0) { REG.push(p); i = REG.len
 
 function noPessoa(p, grande, comObjetivos) {
   const mini = comObjetivos && p.okrs.length
-    ? `<div class="mini">${p.okrs.map(o => `<div><div class="peq"><span class="el">${esc(o.codigo)} · ${esc(o.titulo)}</span><span class="b">${fmt0(o.pct)}</span></div>${barra(o.pct)}</div>`).join('')}</div>` : '';
+    ? `<div class="mini">${p.okrs.map(o => `<div><div class="peq"><span class="el">${esc(rotObj(o))}</span><span class="b">${fmt0(o.pct)}</span></div>${barra(o.pct)}</div>`).join('')}</div>` : '';
   return `<div class="no" onclick="abrirPessoa(${reg(p)})" title="${esc(p.nome)}">
     <div class="nome el" ${grande ? 'style="font-size:14px"' : ''}>${esc(p.nome)}</div>
-    <div class="peq mut el">${esc(p.cargo)}</div>
+    <div class="peq mut el">${esc(p.cargo || (p.personId ? '' : 'Bloco sem responsável'))}</div>
     <div class="linha" style="margin-top:6px"><div style="flex:1">${barra(p.pct)}</div><span class="pct">${fmt(p.pct)}</span></div>${mini}
   </div>`;
 }
-
 function visArvore(m) {
-  const cols = m.grupos.length || 1;
-  const geral = !CONFIG.paginas[S.pagina].area;
+  const geral = !CONFIG.paginas[S.pagina].head;
+  if (!m.grupos.length) return `<div class="arv-raiz" style="max-width:340px">${noPessoa(m.raiz, true, true)}</div>`;
   return `<div class="arv-raiz" ${geral ? 'style="max-width:340px"' : ''}>${noPessoa(m.raiz, true, geral)}</div><div class="arv-tronco"></div>
-  <div class="arv-cols" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">
+  <div class="arv-cols" style="grid-template-columns:repeat(${m.grupos.length},minmax(0,1fr))">
     ${m.grupos.map(g => `<div class="arv-col"><div class="tit up el" title="${esc(g.nome)}">${esc(g.nome)}</div>
       ${g.itens.map(i => i.nivel ? `<div class="recuo" style="margin-left:${(i.nivel - 1) * 10}px">${noPessoa(i.p, false, geral)}</div>` : noPessoa(i.p, false, geral)).join('')}
     </div>`).join('')}
   </div>`;
 }
-
 function cartao(p) {
   return `<div class="no card" onclick="abrirPessoa(${reg(p)})">
     <div class="linha" style="align-items:flex-start;justify-content:space-between">
       <div style="min-width:0"><div class="nome el" style="font-size:13px">${esc(p.nome)}</div><div class="peq mut el">${esc(p.cargo)}</div></div>
       <div class="b" style="font-size:17px">${fmt0(p.pct)}</div>
     </div>
-    ${p.okrs.map(o => `<div class="okr"><div class="peq mut linha" style="justify-content:space-between"><span class="el">${esc(o.codigo)} · ${esc(o.titulo)}</span><span>${fmt0(o.pct)}</span></div>${barra(o.pct)}</div>`).join('')}
+    ${p.okrs.map(o => `<div class="okr"><div class="peq mut linha" style="justify-content:space-between"><span class="el">${esc(rotObj(o))}</span><span>${fmt0(o.pct)}</span></div>${barra(o.pct)}</div>`).join('')}
   </div>`;
 }
 function visCards(m) {
-  return `<div class="secao up">${esc(m.raiz.cargo)}</div><div class="cards">${cartao(m.raiz)}</div>` +
+  return `<div class="secao up">${esc(m.raiz.cargo || m.raiz.nome)}</div><div class="cards">${cartao(m.raiz)}</div>` +
     m.grupos.map(g => `<div class="secao up">${esc(g.nome)}</div><div class="cards">${g.itens.map(i => cartao(i.p)).join('')}</div>`).join('');
 }
-
 function visRanking(m) {
-  const itens = m.todas.flatMap(p => p.okrs.map((o, i) => ({ p, o, i }))).sort((a, b) => a.o.pct - b.o.pct);
-  return `<div class="peq mut" style="margin:12px 0 4px">${itens.length} objetivos, do menor para o maior atingimento</div>` +
+  const itens = m.todas.flatMap(p => p.okrs.map((o, i) => ({ p, o, i }))).filter(x => x.o.pct != null).sort((a, b) => a.o.pct - b.o.pct);
+  return `<div class="peq mut" style="margin:12px 0 4px">${itens.length} objetivos com resultado lançado, do menor para o maior atingimento</div>` +
     itens.map(({ p, o, i }) => `<div class="rk" onclick="abrirOkr(${reg(p)},${i})">
-      <div style="min-width:0"><div class="el">${esc(o.titulo)}</div><div class="peq mut el">${esc(p.nome)} · ${esc(o.codigo)}</div></div>
+      <div style="min-width:0"><div class="el">${esc(o.titulo)}</div><div class="peq mut el">${esc(p.nome)}${o.codigo ? ' · ' + esc(o.codigo) : ''}</div></div>
       ${barra(o.pct)}<div class="b" style="text-align:right">${fmt0(o.pct)}</div></div>`).join('');
 }
-
 function visCalor(m) {
   const n = Math.max(1, ...m.todas.map(p => p.okrs.length));
   const cab = `<div></div>${Array.from({ length: n }, (_, i) => `<div class="peq mut" style="text-align:center">${i + 1}</div>`).join('')}<div class="peq mut b" style="text-align:center">Geral</div>`;
@@ -415,7 +547,7 @@ function visCalor(m) {
       const o = p.okrs[i];
       if (!o) return '<div class="cel vazia"></div>';
       const c = corCelula(o.pct);
-      return `<div class="cel" title="${esc(o.codigo + ' · ' + o.titulo)}" style="background:${c[0]};color:${c[1]}" onclick="abrirOkr(${k},${i})">${fmt0(o.pct)}</div>`;
+      return `<div class="cel" title="${esc(rotObj(o))}" style="background:${c[0]};color:${c[1]}" onclick="abrirOkr(${k},${i})">${fmt0(o.pct)}</div>`;
     }).join('');
     const c = corCelula(p.pct);
     return `<div class="el" style="padding:7px 0;cursor:pointer" onclick="abrirPessoa(${k})" title="${esc(p.cargo)}"><span class="b">${esc(p.nome)}</span></div>${cels}<div class="cel" style="background:${c[0]};color:${c[1]};outline:1px solid rgba(17,17,17,.15)" onclick="abrirPessoa(${k})">${fmt0(p.pct)}</div>`;
@@ -423,36 +555,34 @@ function visCalor(m) {
   return `<div class="peq mut" style="margin:12px 0 6px">Colunas = objetivos 1, 2, 3… de cada pessoa. Passe o mouse para ver o nome.</div>
   <div class="calor" style="grid-template-columns:minmax(120px,190px) repeat(${n},minmax(42px,1fr)) minmax(52px,70px)">${cab}${linhas}</div>`;
 }
-
-function visEvolucao(atual, ant) {
+function visEvolucao() {
+  const atual = dadosTri(S.tri), tAnt = triAnterior(), ant = tAnt ? dadosTri(tAnt) : null;
   if (!ant) return `<div class="centro mut">Ainda não há trimestre anterior a ${esc(triLabel(S.tri))} para comparar.</div>`;
-  const idx = d => Object.fromEntries(d.pessoas.map(p => [p.id, p]));
-  const A = idx(ant.dados);
+  const A = new Map(ant.pessoas.filter(p => p.personId).map(p => [p.personId, p]));
   const d = (a, b) => (a == null || b == null) ? null : a - b;
-  const fd = v => v == null ? '<span class="mut">novo</span>' : `<span style="color:${v > 0.05 ? 'var(--verde)' : v < -0.05 ? 'var(--vermelho)' : 'var(--cinza-escuro)'}">${v > 0.05 ? '▲' : v < -0.05 ? '▼' : '='} ${Math.abs(Math.round(v * 10) / 10).toFixed(1).replace('.', ',')} p.p.</span>`;
+  const fd = v => v == null ? '<span class="mut">–</span>' : `<span style="color:${v > 0.05 ? 'var(--verde)' : v < -0.05 ? 'var(--vermelho)' : 'var(--cinza-escuro)'}">${v > 0.05 ? '▲' : v < -0.05 ? '▼' : '='} ${Math.abs(Math.round(v * 10) / 10).toFixed(1).replace('.', ',')} p.p.</span>`;
+  const qA = triLabel(tAnt).split(' ')[0], qT = triLabel(S.tri).split(' ')[0];
   const bloco = (p, rot) => {
-    const pa = A[p.id];
-    const okrsAnt = pa ? Object.fromEntries(pa.okrs.map(o => [o.codigo + '|' + o.titulo, o.pct])) : {};
+    const pa = A.get(p.personId);
+    const okA = new Map((pa ? pa.okrs : []).map(o => [norm(rotObj(o)), o.pct]));
     return `<div class="ev-area">
       <div class="linha" style="justify-content:space-between;flex-wrap:wrap">
         <div style="min-width:0"><div class="peq mut up">${esc(rot)}</div><div class="b" style="font-size:15px;cursor:pointer" onclick="abrirPessoa(${reg(p)})">${esc(p.nome)}</div></div>
-        <div class="linha" style="gap:14px"><span class="mut peq">${esc(triLabel(ant.dados.trimestre))} ${fmt(pa?.pct)}</span><span class="b" style="font-size:20px">${fmt(p.pct)}</span><span class="delta">${fd(d(p.pct, pa?.pct))}</span></div>
+        <div class="linha" style="gap:14px"><span class="mut peq">${esc(qA)} ${fmt(pa?.pct)}</span><span class="b" style="font-size:20px">${fmt(p.pct)}</span><span class="delta">${fd(d(p.pct, pa?.pct))}</span></div>
       </div>
       <div style="margin-top:8px">
-        <div class="ev-lin peq mut"><span>Objetivo</span><span style="text-align:right">${esc(triLabel(ant.dados.trimestre).split(' ')[0])}</span><span style="text-align:right">${esc(triLabel(S.tri).split(' ')[0])}</span><span style="text-align:right">Variação</span></div>
-        ${p.okrs.map((o, i) => { const v0 = okrsAnt[o.codigo + '|' + o.titulo]; return `<div class="ev-lin" style="cursor:pointer" onclick="abrirOkr(${reg(p)},${i})"><span class="el">${esc(o.codigo)} · ${esc(o.titulo)}</span><span class="mut" style="text-align:right">${fmt0(v0)}</span><span class="b" style="text-align:right">${fmt0(o.pct)}</span><span class="delta">${fd(d(o.pct, v0))}</span></div>`; }).join('')}
+        <div class="ev-lin peq mut"><span>Objetivo</span><span style="text-align:right">${esc(qA)}</span><span style="text-align:right">${esc(qT)}</span><span style="text-align:right">Variação</span></div>
+        ${p.okrs.map((o, i) => { const v0 = okA.get(norm(rotObj(o))); return `<div class="ev-lin" style="cursor:pointer" onclick="abrirOkr(${reg(p)},${i})"><span class="el">${esc(rotObj(o))}</span><span class="mut" style="text-align:right">${fmt0(v0)}</span><span class="b" style="text-align:right">${fmt0(o.pct)}</span><span class="delta">${fd(d(o.pct, v0))}</span></div>`; }).join('')}
       </div></div>`;
   };
-  const pessoas = atual.dados.pessoas;
-  const ceo = pessoas.find(p => p.nivel === 'CEO');
-  const ordem = Object.values(CONFIG.paginas).map(p => p.area).filter(Boolean);
-  const heads = pessoas.filter(p => p.nivel === 'HEAD').sort((a, b) => ordem.indexOf(a.area) - ordem.indexOf(b.area));
-  const resumo = heads.map(h => { const v = d(h.pct, A[h.id]?.pct); return { h, v }; });
-  return `<div class="kpis">${resumo.map(({ h, v }) => `<div class="kpi" style="cursor:pointer" onclick="abrirPessoa(${reg(h)})"><div class="peq mut up">${esc(tituloArea(h.area))}</div><div class="linha" style="justify-content:space-between;align-items:baseline"><span class="v">${fmt0(h.pct)}</span><span class="delta peq">${fd(v)}</span></div></div>`).join('')}</div>
-    ${ceo ? bloco(ceo, 'CEO') : ''}${heads.map(h => bloco(h, tituloArea(h.area))).join('')}`;
+  const m = modeloPagina(atual, 'GERAL');
+  if (!m.raiz) return `<div class="centro mut">Sem dados em ${esc(triLabel(S.tri))}.</div>`;
+  const hs = m.grupos.filter(g => g.nome !== 'Ligados ao CEO').map(g => ({ h: g.itens[0].p, nome: g.nome }));
+  return `<div class="kpis">${hs.map(({ h, nome }) => { const pa = A.get(h.personId); return `<div class="kpi" style="cursor:pointer" onclick="abrirPessoa(${reg(h)})"><div class="peq mut up">${esc(nome)}</div><div class="linha" style="justify-content:space-between;align-items:baseline"><span class="v">${fmt0(h.pct)}</span><span class="delta peq">${fd(d(h.pct, pa?.pct))}</span></div></div>`; }).join('')}</div>
+    ${bloco(m.raiz, m.raiz.cargo || 'CEO')}${hs.map(({ h, nome }) => bloco(h, nome)).join('')}`;
 }
 
-function cabecalho(idv, m) {
+function cabecalho(idv) {
   const cfg = CONFIG.paginas[S.pagina];
   const ehEv = cfg.especial === 'evolucao';
   const urlApres = (() => { const u = new URL(location.href); u.searchParams.set('modo', 'apresentacao'); u.searchParams.set('pagina', S.pagina); return u.toString(); })();
@@ -462,24 +592,23 @@ function cabecalho(idv, m) {
       <select class="btn" aria-label="Trimestre" onchange="trocarTrimestre(this.value)">${S.tris.map(t => `<option value="${esc(t)}" ${t === S.tri ? 'selected' : ''}>${esc(triLabel(t))}</option>`).join('')}</select>
       ${ehEv ? '' : `<span class="grupo-btn">${ROTULOS_VIS.map(([k, r]) => `<button class="btn ${S.vis === k ? 'on' : ''}" onclick="trocarVis('${k}')">${r}</button>`).join('')}</span>`}
       <button class="btn" onclick="S.sem=!S.sem;render()" title="Liga e desliga as cores de semáforo"><span class="ponto" style="background:${S.sem ? 'var(--verde)' : 'var(--cinza-claro)'}"></span>Semáforo</button>
-      <button class="btn" onclick="atualizar()" title="Buscar dados novos agora">Atualizar</button>
-      ${S.apres ? '' : `<a class="btn" href="${esc(urlApres)}" target="_blank" rel="noopener" style="text-decoration:none">Apresentação ↗</a>`}
-      <a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir no app ↗</a>
+      ${CONFIG.tempoReal ? '' : '<button class="btn" onclick="atualizar()" title="Buscar dados novos agora">Atualizar</button>'}
+      ${S.apres ? '' : `<a class="btn" href="${esc(urlApres)}" target="_blank" rel="noopener">Apresentação ↗</a>`}
+      <a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Abrir no app ↗</a>
     </div>
   </div>`;
 }
-
 function indicadores(m) {
-  const objs = m.todas.flatMap(p => p.okrs);
-  const abaixo = objs.filter(o => o.pct < CONFIG.semaforo.amarelo).length;
+  const objs = m.todas.flatMap(p => p.okrs).filter(o => o.pct != null);
+  const vermelhos = objs.filter(o => faixa(o.pct) === 1).length;
   const cards = [];
   if (m.bhag) cards.push(`<div class="kpi"><div class="peq mut el">BHAG · ${esc(m.bhag.titulo)}</div><div class="v">${fmt(m.bhag.pct)}</div></div>`);
-  cards.push(`<div class="kpi"><div class="peq mut el">${m.raiz.nome === m.raiz.cargo ? esc(m.raiz.cargo) : esc(m.raiz.nome) + ' · ' + esc(m.raiz.cargo)}</div><div class="v" ${S.sem ? `style="color:${corSem(m.raiz.pct)}"` : ''}>${fmt(m.raiz.pct)}</div></div>`);
-  cards.push(`<div class="kpi"><div class="peq mut">Pessoas</div><div class="v">${m.todas.length}</div></div>`);
-  cards.push(`<div class="kpi"><div class="peq mut">Objetivos abaixo de ${CONFIG.semaforo.amarelo}%</div><div class="v">${abaixo} <span class="peq mut">de ${objs.length}</span></div></div>`);
+  const rot = m.raiz.nome === m.raiz.cargo || !m.raiz.cargo ? m.raiz.nome : m.raiz.nome + ' · ' + m.raiz.cargo;
+  cards.push(`<div class="kpi"><div class="peq mut el">${esc(rot)}</div><div class="v" ${S.sem && m.raiz.pct != null ? `style="color:${corSem(m.raiz.pct)}"` : ''}>${fmt(m.raiz.pct)}</div></div>`);
+  cards.push(`<div class="kpi"><div class="peq mut">Pessoas</div><div class="v">${m.todas.filter(p => p.personId).length}</div></div>`);
+  cards.push(`<div class="kpi"><div class="peq mut">Objetivos até ${CONFIG.semaforo.amarelo}%</div><div class="v">${vermelhos} <span class="peq mut">de ${objs.length}</span></div></div>`);
   return `<div class="kpis">${cards.join('')}</div>`;
 }
-
 function navApresentacao() {
   if (!S.apres) return '';
   const ks = Object.keys(CONFIG.paginas);
@@ -491,65 +620,71 @@ function navApresentacao() {
     <span class="peq mut">Use as setas do teclado para navegar</span>
   </div>`;
 }
-
 function render() {
   REG = [];
   const raiz = $('#raiz');
   const idv = aplicarIdv(S.pagina);
   document.body.classList.toggle('apres', S.apres);
-  if (!S.pacote) { raiz.innerHTML = navApresentacao() + `<div class="centro mut">Sem dados para ${esc(triLabel(S.tri))}.</div>`; return; }
+  const dados = dadosTri(S.tri);
+  if (!dados) { raiz.innerHTML = navApresentacao() + `<div class="centro mut">Nenhum trimestre encontrado no app.</div>`; return; }
   const cfg = CONFIG.paginas[S.pagina];
-  let corpo, m = null;
-  if (cfg.especial === 'evolucao') {
-    corpo = visEvolucao(S.pacote, S.anterior);
-  } else {
-    m = modeloPagina(S.pacote.dados, S.pagina);
-    if (!m.raiz) corpo = `<div class="centro mut">Nenhum Head encontrado para ${esc(cfg.titulo)} em ${esc(triLabel(S.tri))}.</div>`;
+  let corpo;
+  if (cfg.especial === 'evolucao') corpo = visEvolucao();
+  else {
+    const m = modeloPagina(dados, S.pagina);
+    if (!m.raiz) corpo = `<div class="centro mut">Não encontrei ${cfg.head ? `“${esc(cfg.head)}” na Base de Dados do app` : 'o responsável do topo'} em ${esc(triLabel(S.tri))}.<div class="peq" style="margin-top:6px">Confira o cargo cadastrado ou ajuste CONFIG.paginas.</div></div>`;
     else corpo = indicadores(m) + ({ arvore: visArvore, cards: visCards, ranking: visRanking, calor: visCalor }[S.vis] || visArvore)(m);
   }
   const em = new Date(S.pacote.em);
-  const demo = CONFIG.fonte === 'demo'
-    ? `<div class="aviso">Dados de demonstração: o T3 é o export de 23/10/2026; o T2 é fictício, só para testar a página de evolução. Troque <b>CONFIG.fonte</b> para 'firebase' quando a leitura estiver ligada.</div>` : '';
-  raiz.innerHTML = navApresentacao() + cabecalho(idv, m) + corpo + demo +
-    `<div class="rodape"><span>Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><span>Atualiza automaticamente a cada ${CONFIG.horasCache} h</span></div>`;
+  const demo = CONFIG.fonte === 'demo' ? `<div class="aviso">Dados de demonstração (o T2 é fictício). Para ler o app, use CONFIG.fonte = 'firebase'.</div>` : '';
+  const sair = CONFIG.exigirLogin && CONFIG.fonte !== 'demo' ? ` · <a href="#" onclick="sair();return false" style="color:inherit">Sair</a>` : '';
+  raiz.innerHTML = navApresentacao() + cabecalho(idv) + corpo + demo +
+    `<div class="rodape"><span>Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${sair}</span><span>${CONFIG.tempoReal ? 'Atualiza em tempo real' : `Atualiza automaticamente a cada ${CONFIG.horasCache} h`}</span></div>`;
   avisarAltura();
 }
 
 /* Detalhe de pessoa e de objetivo */
 function fecharDetalhe() { $('#detalhe').innerHTML = ''; }
-function modal(html) {
-  $('#detalhe').innerHTML = `<div class="veu" onclick="if(event.target===this)fecharDetalhe()"><div class="modal">${html}</div></div>`;
-}
+function modal(html) { $('#detalhe').innerHTML = `<div class="veu" onclick="if(event.target===this)fecharDetalhe()"><div class="modal">${html}</div></div>`; }
 function abrirPessoa(k) {
   const p = REG[k];
-  const pg = p.nivel === 'HEAD' && S.pagina !== paginaDaArea(p.area) ? paginaDaArea(p.area) : null;
+  const heads = mapaHeads(dadosTri(S.tri).pessoas);
+  const pg = heads.get(p.id);
   modal(`<div class="linha" style="justify-content:space-between;align-items:flex-start">
-      <div><div class="b" style="font-size:17px">${esc(p.nome)}</div><div class="mut peq">${esc(p.cargo)}${p.grupo ? ' · ' + esc(p.grupo) : ''}</div></div>
+      <div><div class="b" style="font-size:17px">${esc(p.nome)}</div><div class="mut peq">${esc(p.cargo)}</div></div>
       <button class="btn" onclick="fecharDetalhe()" aria-label="Fechar">✕</button></div>
     <div class="linha" style="margin:12px 0"><div style="flex:1">${barra(p.pct)}</div><span class="b" style="font-size:22px">${fmt(p.pct)}</span></div>
-    ${p.okrs.map((o, i) => `<div class="rk" style="grid-template-columns:minmax(0,1fr) 110px 48px" onclick="abrirOkr(${k},${i})"><span class="el">${esc(o.codigo)} · ${esc(o.titulo)}</span>${barra(o.pct)}<span class="b" style="text-align:right">${fmt0(o.pct)}</span></div>`).join('')}
+    ${p.okrs.map((o, i) => `<div class="rk" style="grid-template-columns:minmax(0,1fr) 110px 48px" onclick="abrirOkr(${k},${i})"><span class="el">${esc(rotObj(o))}</span>${barra(o.pct)}<span class="b" style="text-align:right">${fmt0(o.pct)}</span></div>`).join('')}
     <div class="linha" style="justify-content:flex-end;gap:6px;margin-top:12px">
-      ${pg ? `<button class="btn" onclick="fecharDetalhe();irPara('${pg}')">Ver página ${esc(CONFIG.paginas[pg].titulo)}</button>` : ''}
-      <a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir no app ↗</a>
+      ${pg && pg !== S.pagina ? `<button class="btn" onclick="fecharDetalhe();irPara('${pg}')">Ver página ${esc(CONFIG.paginas[pg].titulo)}</button>` : ''}
+      <a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Abrir no app ↗</a>
     </div>`);
+}
+const STATUS = { feito: 'Feito', nao: 'Não feito', atraso: 'Feito com atraso' };
+function valorKr(kr, v) {
+  if (v === '' || v == null) return '–';
+  if (/^financeiro/.test(kr.tipo)) { const n = parseFloat(v); return isNaN(n) ? esc(v) : 'R$ ' + n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  if (/^porcentagem/.test(kr.tipo)) return esc(String(v).replace('.', ',')) + '%';
+  return esc(String(v).replace('.', ',')) + (kr.unidade ? ' ' + esc(kr.unidade) : '');
 }
 function abrirOkr(k, i) {
   const p = REG[k], o = p.okrs[i];
-  const krs = (o.krs && o.krs.length)
-    ? o.krs.map(kr => `<div class="kr"><div class="linha" style="justify-content:space-between"><span>${esc(kr.titulo)}</span><span class="b">${fmt0(kr.pct)}</span></div>
-        <div class="peq mut">${kr.meta != null ? 'Meta ' + esc(kr.meta) : ''}${kr.atual != null ? ' · Atual ' + esc(kr.atual) : ''}${kr.peso != null ? ' · Peso ' + esc(kr.peso) : ''}</div>${barra(kr.pct)}</div>`).join('')
-    : `<div class="kr mut">Os key results, metas e pesos aparecem aqui quando a leitura do Firebase estiver ligada.</div>`;
+  const krs = o.krs.length
+    ? o.krs.map(kr => `<div class="kr"><div class="linha" style="justify-content:space-between;align-items:flex-start"><span>${esc(kr.titulo)}</span><span class="b">${fmt0(kr.pct)}</span></div>
+        <div class="peq mut" style="margin:2px 0 5px">${kr.tipo === 'selecao' ? 'Situação: ' + esc(STATUS[kr.status] || 'Não informado') : 'Meta ' + valorKr(kr, kr.meta) + ' · Realizado ' + valorKr(kr, kr.realizado)}${kr.peso != null && kr.peso !== '' ? ' · Peso ' + esc(kr.peso) : ''}</div>${barra(kr.pct)}</div>`).join('')
+    : `<div class="kr mut">Este objetivo ainda não tem Resultados Chave cadastrados.</div>`;
   modal(`<div class="linha" style="justify-content:space-between;align-items:flex-start">
-      <div><div class="mut peq">${esc(o.codigo)} · ${esc(p.nome)}</div><div class="b" style="font-size:17px">${esc(o.titulo)}</div></div>
+      <div><div class="mut peq">${o.codigo ? esc(o.codigo) + ' · ' : ''}${esc(p.nome)}</div><div class="b" style="font-size:17px">${esc(o.titulo)}</div></div>
       <div class="linha"><button class="btn" onclick="abrirPessoa(${k})">◀ Voltar</button><button class="btn" onclick="fecharDetalhe()" aria-label="Fechar">✕</button></div></div>
     <div class="linha" style="margin:12px 0"><div style="flex:1">${barra(o.pct)}</div><span class="b" style="font-size:22px">${fmt(o.pct)}</span></div>
+    <div class="peq mut b up" style="margin-bottom:6px">Resultados chave</div>
     <div style="display:grid;gap:6px">${krs}</div>
-    <div class="linha" style="justify-content:flex-end;margin-top:12px"><a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener" style="text-decoration:none">Abrir no app ↗</a></div>`);
+    <div class="linha" style="justify-content:flex-end;margin-top:12px"><a class="btn" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Abrir no app ↗</a></div>`);
 }
 
 /* Ações */
 function trocarVis(v) { S.vis = v; render(); }
-async function trocarTrimestre(t) { S.tri = t; await carregar(false); }
+function trocarTrimestre(t) { S.tri = t; render(); }
 async function atualizar() { await carregar(true); }
 function irPara(pg) {
   S.pagina = pg;
@@ -568,51 +703,63 @@ document.addEventListener('keydown', e => {
   if (e.key === 'ArrowRight') passo(1);
   if (e.key === 'ArrowLeft') passo(-1);
 });
-
-/* Ajuda o SharePoint a dimensionar o iframe quando possível */
 function avisarAltura() { try { parent.postMessage({ painelOkrsAltura: document.documentElement.scrollHeight }, '*'); } catch (e) {} }
 
-/* Carregamento e login */
+/* Carregamento */
+function aplicarPacote(pacote) {
+  S.pacote = pacote;
+  S.tris = ordenarTris(Object.keys(pacote.periodos));
+  if (!S.tri || !S.tris.includes(S.tri)) S.tri = S.tris.length ? triPadrao(pacote, S.tris) : null;
+  render();
+}
 async function carregar(forcar) {
-  const raiz = $('#raiz');
   try {
-    if (!S.tris.length) S.tris = await listarTrimestres();
-    if (!S.tri) S.tri = S.tris[0];
-    S.pacote = await obterDados(S.tri, forcar);
-    const i = S.tris.indexOf(S.tri);
-    S.anterior = S.tris[i + 1] ? await obterDados(S.tris[i + 1], forcar) : null;
-    render();
+    if (CONFIG.tempoReal && CONFIG.fonte !== 'demo') {
+      if (!S.ouvinte) S.ouvinte = await escutarTempoReal(aplicarPacote);
+      return;
+    }
+    aplicarPacote(await obterPacote(forcar));
   } catch (e) {
     console.error(e);
-    raiz.innerHTML = `<div class="centro"><div class="b">Não foi possível carregar os OKRs</div><div class="erro">${esc(e.message)}</div><button class="btn" style="margin-top:12px" onclick="carregar(true)">Tentar de novo</button></div>`;
+    $('#raiz').innerHTML = `<div class="centro"><div class="b">Não foi possível carregar os OKRs</div><div class="erro">${esc(e.message)}</div><button class="btn" style="margin-top:12px" onclick="carregar(true)">Tentar de novo</button></div>`;
   }
 }
 
+/* Login (mesmo usuário e senha do app) */
+const CHAVE_LOGIN = 'painel-okrs:login';
+const logado = () => { try { return !!JSON.parse(localStorage.getItem(CHAVE_LOGIN) || 'null'); } catch (e) { return false; } };
 function telaLogin(msg) {
   aplicarIdv(S.pagina);
   $('#raiz').innerHTML = `<form class="centro" onsubmit="entrar(event)">
     <div class="marca up b">Plano de objetivos</div><div class="titulo up" style="font-size:20px;margin-bottom:6px">Entrar</div>
-    <div class="mut peq">Use o mesmo login do app de OKRs.</div>
-    <input id="email" type="email" placeholder="nome@empresa.com.br" autocomplete="username" required>
+    <div class="mut peq">Use o mesmo usuário e senha do app de OKRs.</div>
+    <input id="usuario" placeholder="Seu nome, como no app" autocomplete="username" required>
     <input id="senha" type="password" placeholder="Senha" autocomplete="current-password" required>
     ${msg ? `<div class="erro">${esc(msg)}</div>` : ''}
     <button class="btn on" style="margin-top:12px;padding:7px 16px;font-size:13px" type="submit">Entrar</button></form>`;
 }
 async function entrar(ev) {
   ev.preventDefault();
+  const u = $('#usuario').value.trim(), s = $('#senha').value;
   try {
-    const { auth, authMod } = await iniciarFirebase();
-    await authMod.signInWithEmailAndPassword(auth, $('#email').value.trim(), $('#senha').value);
-  } catch (e) { telaLogin('E-mail ou senha inválidos.'); }
+    const estado = await lerEstadoBruto();
+    const ok = (estado.dbData || []).some(p => norm(p.nome) === norm(u) && p.senha && p.senha === s);
+    if (!ok) { telaLogin('Usuário ou senha inválidos.'); return; }
+    try { localStorage.setItem(CHAVE_LOGIN, JSON.stringify({ u, em: Date.now() })); } catch (e) {}
+    const pacote = prepararPacote(estado);
+    try { localStorage.setItem(CHAVE_CACHE, JSON.stringify(pacote)); } catch (e) {}
+    if (CONFIG.tempoReal) carregar(false); else aplicarPacote(pacote);
+  } catch (e) { telaLogin('Não foi possível conectar: ' + e.message); }
+}
+function sair() {
+  try { localStorage.removeItem(CHAVE_LOGIN); localStorage.removeItem(CHAVE_CACHE); } catch (e) {}
+  location.reload();
 }
 
-(async function iniciar() {
-  if (CONFIG.fonte === 'demo') { carregar(false); return; }
+(function iniciar() {
+  if (CONFIG.fonte !== 'demo' && CONFIG.exigirLogin && !logado()) { telaLogin(); return; }
   $('#raiz').innerHTML = '<div class="centro mut">Carregando…</div>';
-  try {
-    const { auth, authMod } = await iniciarFirebase();
-    authMod.onAuthStateChanged(auth, u => u ? carregar(false) : telaLogin());
-  } catch (e) { $('#raiz').innerHTML = `<div class="centro erro">Falha ao iniciar o Firebase: ${esc(e.message)}</div>`; }
+  carregar(false);
 })();
 </script>
 </body>
