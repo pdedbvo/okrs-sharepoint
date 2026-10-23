@@ -128,7 +128,10 @@ const CONFIG = {
   colecao: 'okrsBravo',
   documento: 'state',
 
-  // Pede o mesmo usuário e senha do app antes de mostrar o painel.
+  // Acesso: quem abre pelo SharePoint (link com &chave=...) entra direto.
+  // Sem a chave, o painel pede o mesmo usuário e senha do app.
+  // Aqui fica só o "hash" da chave (SHA-256), nunca a chave em si.
+  chaveHash: '4038f685368cba6c4c61cc8938afe4b5f9428332cae8683dfcc945f0707bf9de',
   exigirLogin: true,
 
   // false = busca no Firebase no máximo a cada "horasCache" (ou no botão Atualizar).
@@ -637,7 +640,7 @@ function render() {
   }
   const em = new Date(S.pacote.em);
   const demo = CONFIG.fonte === 'demo' ? `<div class="aviso">Dados de demonstração (o T2 é fictício). Para ler o app, use CONFIG.fonte = 'firebase'.</div>` : '';
-  const sair = CONFIG.exigirLogin && CONFIG.fonte !== 'demo' ? ` · <a href="#" onclick="sair();return false" style="color:inherit">Sair</a>` : '';
+ const sair = CONFIG.exigirLogin && CONFIG.fonte !== 'demo' && logado() ? ` · <a href="#" onclick="sair();return false" style="color:inherit">Sair</a>` : '';
   raiz.innerHTML = navApresentacao() + cabecalho(idv) + corpo + demo +
     `<div class="rodape"><span>Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${sair}</span><span>${CONFIG.tempoReal ? 'Atualiza em tempo real' : `Atualiza automaticamente a cada ${CONFIG.horasCache} h`}</span></div>`;
   avisarAltura();
@@ -732,7 +735,7 @@ function telaLogin(msg) {
   aplicarIdv(S.pagina);
   $('#raiz').innerHTML = `<form class="centro" onsubmit="entrar(event)">
     <div class="marca up b">Plano de objetivos</div><div class="titulo up" style="font-size:20px;margin-bottom:6px">Entrar</div>
-    <div class="mut peq">Use o mesmo usuário e senha do app de OKRs.</div>
+    <div class="mut peq">Abra pelo SharePoint ou use o mesmo usuário e senha do app de OKRs.</div>
     <input id="usuario" placeholder="Seu nome, como no app" autocomplete="username" required>
     <input id="senha" type="password" placeholder="Senha" autocomplete="current-password" required>
     ${msg ? `<div class="erro">${esc(msg)}</div>` : ''}
@@ -756,8 +759,17 @@ function sair() {
   location.reload();
 }
 
-(function iniciar() {
-  if (CONFIG.fonte !== 'demo' && CONFIG.exigirLogin && !logado()) { telaLogin(); return; }
+async function chaveValida() {
+  const k = qs.get('chave');
+  if (!k || !CONFIG.chaveHash) return false;
+  try {
+    const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(k));
+    const hex = [...new Uint8Array(buf)].map(b => b.toString(16).padStart(2, '0')).join('');
+    return hex === CONFIG.chaveHash.toLowerCase();
+  } catch (e) { return false; }
+}
+(async function iniciar() {
+  if (CONFIG.fonte !== 'demo' && CONFIG.exigirLogin && !logado() && !(await chaveValida())) { telaLogin(); return; }
   $('#raiz').innerHTML = '<div class="centro mut">Carregando…</div>';
   carregar(false);
 })();
