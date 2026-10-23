@@ -146,10 +146,12 @@ const CONFIG = {
   semaforo: { verde: 90, amarelo: 50 },
 
   // Páginas do SharePoint (?pagina=CHAVE). "head" = cargo (ou nome) do Head na Base de Dados do app.
+  // Se o Head não for encontrado no trimestre, a página usa os blocos que levam a sigla da área
+  // (a própria chave da página, ou a lista "siglas").
   paginas: {
     'GERAL':     { titulo: 'Visão geral', idv: 'DBVO' },
     'CSUA':      { titulo: 'CSUA',        idv: 'DBVO',             head: 'Head CSUA' },
-    'CSUM+EDFC': { titulo: 'CSUM + EDFC', idv: 'DBVO',             head: 'Head CSUM/EDFC' },
+    'CSUM+EDFC': { titulo: 'CSUM + EDFC', idv: 'DBVO',             head: 'Head CSUM/EDFC', siglas: ['CSUM', 'CSU', 'EDFC'] },
     'ENGO':      { titulo: 'ENGO',        idv: 'BRAVO_OBRAS',      head: 'Head ENGO' },
     'ENGE':      { titulo: 'ENGE',        idv: 'BRAVO_ENGENHARIA', head: 'Head ENGE' },
     'EDFE':      { titulo: 'EDFE',        idv: 'EDIFICA',          head: 'Head EDFE' },
@@ -232,15 +234,20 @@ function converterPeriodo(per, dbData) {
   const effOf = n => {
     if (effResp.has(n.id)) return effResp.get(n.id);
     let cur = n, r = ''; const seen = new Set();
-    while (cur && !seen.has(cur.id)) { seen.add(cur.id); if (cur.responsible) { r = cur.responsible; break; } cur = parentOf(cur) ? byId.get(parentOf(cur)) : null; }
+    while (cur && !seen.has(cur.id)) {
+      seen.add(cur.id);
+      if (cur.responsible) { r = 'r:' + cur.responsible; break; }
+      const ar = areaDoBloco(cur); if (ar) { r = 'a:' + ar; break; }
+      cur = parentOf(cur) ? byId.get(parentOf(cur)) : null;
+    }
     effResp.set(n.id, r); return r;
   };
   const groups = [], gByKey = new Map(), gOf = new Map();
   order.forEach(n => {
-    const resp = effOf(n);
-    const key = resp ? 'r:' + resp : 'n:' + n.id;
+    const ef = effOf(n);
+    const key = ef || 'n:' + n.id;
     let g = gByKey.get(key);
-    if (!g) { g = { key, personId: resp || '', nodes: [], top: n, depth: depth.get(n.id) }; gByKey.set(key, g); groups.push(g); }
+    if (!g) { g = { key, personId: ef.startsWith('r:') ? ef.slice(2) : '', area: ef.startsWith('a:') ? ef.slice(2) : '', nodes: [], top: n, depth: depth.get(n.id) }; gByKey.set(key, g); groups.push(g); }
     g.nodes.push(n); gOf.set(n.id, g);
     if (depth.get(n.id) < g.depth) { g.depth = depth.get(n.id); g.top = n; }
   });
@@ -264,18 +271,30 @@ function converterPeriodo(per, dbData) {
     const rows = g.nodes.flatMap(linhasDe);
     return {
       id: g.key, personId: g.personId,
-      nome: g.personId ? (p ? (umaLinha(p.nome) || '(sem nome)') : '(responsável removido)') : umaLinha(g.top.label) || '(sem título)',
-      cargo: p ? umaLinha(p.cargo) : '', nivelTxt: p ? umaLinha(p.nivel) : '',
+      nome: g.personId ? (p ? (umaLinha(p.nome) || '(sem nome)') : '(responsável removido)')
+        : g.area ? (CONFIG.paginas[g.area].head || CONFIG.paginas[g.area].titulo) : umaLinha(g.top.label) || '(sem título)',
+      cargo: p ? umaLinha(p.cargo) : g.area ? 'Sem responsável definido no app' : '', nivelTxt: p ? umaLinha(p.nivel) : '',
       pai: paiDe(g), prof: g.depth, pct: pnPool(rows), okrs: g.nodes.map(objetivo)
     };
   });
   // BHAG = bloco do topo sem responsável (ex.: "Estratégia Global"). Fica como indicador, não como pessoa.
-  const topoSemResp = todas.find(x => !x.personId && !x.pai);
+  const topoSemResp = todas.find(x => !x.personId && !x.pai && !x.id.startsWith('a:'));
   const bhag = topoSemResp ? { titulo: topoSemResp.okrs[0] ? (topoSemResp.okrs[0].titulo) : topoSemResp.nome, pct: topoSemResp.pct } : null;
   const pessoas = todas.filter(x => x !== topoSemResp).map(x => ({ ...x, pai: x.pai === (topoSemResp && topoSemResp.id) ? '' : x.pai }));
   return { trimestre: chaveTri(per), bhag, pessoas };
 }
 const chaveTri = p => `${p.ano}-T${p.trimestre}`;
+function reSigla(pagina) {
+  const cfg = CONFIG.paginas[pagina];
+  const sig = (cfg.siglas || [pagina]).map(x => x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+  return new RegExp('(^|[^A-Za-z0-9])(' + sig.join('|') + ')([^A-Za-z0-9]|$)', 'i');
+}
+// Bloco SEM responsável que leva a sigla de uma área (ex.: "MF 1 · ENGO") → página dessa área
+function areaDoBloco(n) {
+  if (!n || n.responsible) return null;
+  const txt = (n.label || '') + ' ' + (n.subtitle || '');
+  return Object.keys(CONFIG.paginas).find(k => CONFIG.paginas[k].head && reSigla(k).test(txt)) || null;
+}
 
 /* =====================================================================
    LEITURA DOS DADOS
@@ -458,39 +477,53 @@ function acharHead(pessoas, pagina) {
   return cands.find(p => norm(p.cargo) === alvo) || cands.find(p => norm(p.nome) === alvo)
     || cands.find(p => norm(p.cargo).includes(alvo)) || null;
 }
+// Raiz da página de uma área: 1) o Head pelo cargo/nome; 2) se não houver (ex.: bloco sem responsável
+// no trimestre), os blocos mais altos que levam a sigla da área (ex.: "MF 1 · ENGO"), juntos num card só.
+function raizArea(pessoas, pagina) {
+  const h = acharHead(pessoas, pagina);
+  if (h) return h;
+  const semResp = pessoas.find(p => p.id === 'a:' + pagina);   // blocos da área sem responsável
+  if (semResp) return semResp;
+  // último recurso: o card mais alto que leva a sigla da área (sem pegar o card do topo/CEO)
+  const re = reSigla(pagina);
+  const comPessoa = pessoas.filter(p => p.personId);
+  const topo = comPessoa.length ? Math.min(...comPessoa.map(p => p.prof)) : -1;
+  const achados = pessoas.filter(p => p.prof > topo && (re.test(p.cargo) || p.okrs.some(o => re.test(o.codigo + ' ' + o.titulo))));
+  return achados.sort((a, b) => a.prof - b.prof)[0] || null;
+}
 function mapaHeads(pessoas) {
   const m = new Map();
-  paginasArea().forEach(k => { const h = acharHead(pessoas, k); if (h && !m.has(h.id)) m.set(h.id, k); });
+  paginasArea().forEach(k => { const r = raizArea(pessoas, k); if (r && ![...m.values()].some(x => x.raiz.id === r.id)) m.set(k, { raiz: r }); });
   return m;
 }
+const ehFilho = (x, p) => x.pai === p.id || (p.membros && p.membros.includes(x.pai));
 function modeloPagina(dados, pagina) {
   const cfg = CONFIG.paginas[pagina];
   const pessoas = dados.pessoas;
-  const filhos = id => pessoas.filter(p => p.pai === id);
+  const filhos = p => pessoas.filter(x => ehFilho(x, p));
   const heads = mapaHeads(pessoas);
+  const ocupados = new Set([...heads.values()].flatMap(v => [v.raiz.id, ...(v.raiz.membros || [])]));
 
   if (!cfg.head) {
     const comPessoa = pessoas.filter(p => p.personId);
     const raiz = comPessoa.slice().sort((a, b) => a.prof - b.prof)[0];
     if (!raiz) return { raiz: null };
-    const ordem = paginasArea();
-    const hs = [...heads.keys()].map(id => pessoas.find(p => p.id === id)).filter(Boolean)
-      .sort((a, b) => ordem.indexOf(heads.get(a.id)) - ordem.indexOf(heads.get(b.id)));
-    const diretos = filhos(raiz.id).filter(p => !heads.has(p.id));
-    const grupos = hs.map(h => ({ nome: CONFIG.paginas[heads.get(h.id)].titulo, itens: [{ p: h, nivel: 0 }] }));
+    const hs = paginasArea().filter(k => heads.has(k)).map(k => ({ k, h: heads.get(k).raiz }));
+    const diretos = filhos(raiz).filter(p => !ocupados.has(p.id));
+    const grupos = hs.map(({ k, h }) => ({ nome: CONFIG.paginas[k].titulo, itens: [{ p: h, nivel: 0 }] }));
     if (diretos.length) grupos.push({ nome: 'Ligados ao CEO', itens: diretos.map(p => ({ p, nivel: 0 })) });
-    return { raiz, grupos, todas: [raiz, ...hs, ...diretos], bhag: dados.bhag, heads };
+    return { raiz, grupos, todas: [raiz, ...hs.map(x => x.h), ...diretos], bhag: dados.bhag, heads };
   }
 
-  const raiz = acharHead(pessoas, pagina);
+  const raiz = heads.has(pagina) ? heads.get(pagina).raiz : raizArea(pessoas, pagina);
   if (!raiz) return { raiz: null };
-  const grupos = filhos(raiz.id).map(f => {
+  const grupos = filhos(raiz).map(f => {
     const itens = [];
     (function desce(p, nivel, vistos) {
       if (vistos.has(p.id)) return; vistos.add(p.id);
       itens.push({ p, nivel });
-      filhos(p.id).forEach(k => desce(k, nivel + 1, vistos));
-    })(f, 0, new Set([raiz.id]));
+      filhos(p).forEach(k => desce(k, nivel + 1, vistos));
+    })(f, 0, new Set([raiz.id, ...(raiz.membros || [])]));
     return { nome: f.cargo || f.nome, itens };
   });
   return { raiz, grupos, todas: [raiz, ...grupos.flatMap(g => g.itens.map(i => i.p))], heads };
@@ -561,12 +594,13 @@ function visCalor(m) {
 function visEvolucao() {
   const atual = dadosTri(S.tri), tAnt = triAnterior(), ant = tAnt ? dadosTri(tAnt) : null;
   if (!ant) return `<div class="centro mut">Ainda não há trimestre anterior a ${esc(triLabel(S.tri))} para comparar.</div>`;
-  const A = new Map(ant.pessoas.filter(p => p.personId).map(p => [p.personId, p]));
+  const A = new Map(ant.pessoas.map(p => [p.personId || p.id, p]));
+  const mAnt = modeloPagina(ant, 'GERAL'); if (mAnt.heads) mAnt.heads.forEach((v, k) => A.set('pg:' + k, v.raiz));
   const d = (a, b) => (a == null || b == null) ? null : a - b;
   const fd = v => v == null ? '<span class="mut">–</span>' : `<span style="color:${v > 0.05 ? 'var(--verde)' : v < -0.05 ? 'var(--vermelho)' : 'var(--cinza-escuro)'}">${v > 0.05 ? '▲' : v < -0.05 ? '▼' : '='} ${Math.abs(Math.round(v * 10) / 10).toFixed(1).replace('.', ',')} p.p.</span>`;
   const qA = triLabel(tAnt).split(' ')[0], qT = triLabel(S.tri).split(' ')[0];
   const bloco = (p, rot) => {
-    const pa = A.get(p.personId);
+    const pa = A.get(p.personId || p.id) || A.get(p.__pg);
     const okA = new Map((pa ? pa.okrs : []).map(o => [norm(rotObj(o)), o.pct]));
     return `<div class="ev-area">
       <div class="linha" style="justify-content:space-between;flex-wrap:wrap">
@@ -580,8 +614,8 @@ function visEvolucao() {
   };
   const m = modeloPagina(atual, 'GERAL');
   if (!m.raiz) return `<div class="centro mut">Sem dados em ${esc(triLabel(S.tri))}.</div>`;
-  const hs = m.grupos.filter(g => g.nome !== 'Ligados ao CEO').map(g => ({ h: g.itens[0].p, nome: g.nome }));
-  return `<div class="kpis">${hs.map(({ h, nome }) => { const pa = A.get(h.personId); return `<div class="kpi" style="cursor:pointer" onclick="abrirPessoa(${reg(h)})"><div class="peq mut up">${esc(nome)}</div><div class="linha" style="justify-content:space-between;align-items:baseline"><span class="v">${fmt0(h.pct)}</span><span class="delta peq">${fd(d(h.pct, pa?.pct))}</span></div></div>`; }).join('')}</div>
+  const hs = paginasArea().filter(k => m.heads.has(k)).map(k => { const h = m.heads.get(k).raiz; h.__pg = 'pg:' + k; return { h, nome: CONFIG.paginas[k].titulo }; });
+  return `<div class="kpis">${hs.map(({ h, nome }) => { const pa = A.get(h.personId || h.id) || A.get(h.__pg); return `<div class="kpi" style="cursor:pointer" onclick="abrirPessoa(${reg(h)})"><div class="peq mut up">${esc(nome)}</div><div class="linha" style="justify-content:space-between;align-items:baseline"><span class="v">${fmt0(h.pct)}</span><span class="delta peq">${fd(d(h.pct, pa?.pct))}</span></div></div>`; }).join('')}</div>
     ${bloco(m.raiz, m.raiz.cargo || 'CEO')}${hs.map(({ h, nome }) => bloco(h, nome)).join('')}`;
 }
 
@@ -652,7 +686,7 @@ function modal(html) { $('#detalhe').innerHTML = `<div class="veu" onclick="if(e
 function abrirPessoa(k) {
   const p = REG[k];
   const heads = mapaHeads(dadosTri(S.tri).pessoas);
-  const pg = heads.get(p.id);
+  const pg = [...heads.keys()].find(k => heads.get(k).raiz.id === p.id);
   modal(`<div class="linha" style="justify-content:space-between;align-items:flex-start">
       <div><div class="b" style="font-size:17px">${esc(p.nome)}</div><div class="mut peq">${esc(p.cargo)}</div></div>
       <button class="btn" onclick="fecharDetalhe()" aria-label="Fechar">✕</button></div>
