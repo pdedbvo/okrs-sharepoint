@@ -57,6 +57,25 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 .kpi.escuro .v{display:flex;align-items:center;gap:10px}
 .kpi.escuro .ponto{width:10px;height:10px}
 
+
+/* Novos indicadores */
+.kpi .sub{font-size:12px;color:var(--cinza-escuro);line-height:1.4}
+.kpi.escuro .sub{color:var(--cinza-claro)}
+.kpi.escuro .trilho{background:rgba(255,255,255,.18);overflow:visible;position:relative}
+.marca-ritmo{position:absolute;top:-4px;bottom:-4px;width:2px;background:var(--branco);border-radius:2px}
+.pilha{display:flex;gap:2px;height:9px;border-radius:99px;overflow:hidden}
+.aten{display:grid;gap:2px;grid-template-columns:minmax(0,1fr)}
+.aten-l{min-width:0;display:flex;justify-content:space-between;gap:10px;align-items:center;padding:5px 6px;margin:0 -6px;border-radius:8px;cursor:pointer;font-size:12px;transition:background .2s}
+.aten-l:hover{background:var(--sup-forte)}
+.aten-l .tx{min-width:0;flex:1}
+.t2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere;line-height:1.3}
+.aten-l small{display:block;font-size:11px;color:var(--cinza-escuro);overflow:hidden;text-overflow:ellipsis}
+.aten-l b{flex:none;font-variant-numeric:tabular-nums}
+.bhag{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(80px,180px) auto;gap:12px;align-items:center;font-size:12px;padding:0 2px 14px;color:var(--cinza-escuro)}
+.bhag .rot{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--preto);font-weight:700}
+.bhag b{color:var(--preto)}
+@media (max-width:560px){.bhag{grid-template-columns:auto minmax(0,1fr) auto}.bhag .trilho{display:none}}
+
 /* Elementos comuns */
 .trilho{height:5px;background:var(--trilho);border-radius:99px;overflow:hidden}
 .trilho>i{display:block;height:100%;border-radius:99px;transition:width .8s var(--ease)}
@@ -671,19 +690,58 @@ function cabecalho(idv) {
     </div>
   </div>`;
 }
+// Fração do trimestre já decorrida (0 a 1), a partir de "2026-T4"
+function fracTrimestre(tri) {
+  const mt = /^(\d{4})-T(\d)$/.exec(tri || ''); if (!mt) return null;
+  const ano = +mt[1], q = +mt[2];
+  const ini = new Date(ano, (q - 1) * 3, 1), fim = new Date(ano, q * 3, 1), agora = new Date();
+  return Math.max(0, Math.min(1, (agora - ini) / (fim - ini)));
+}
+const krLancado = kr => kr.tipo === 'selecao' ? !!kr.status : !(kr.realizado === '' || kr.realizado == null);
 function indicadores(m) {
-  const objs = m.todas.flatMap(p => p.okrs).filter(o => o.pct != null);
-  const vermelhos = objs.filter(o => faixa(o.pct) === 1).length;
-  const rot = m.raiz.nome === m.raiz.cargo || !m.raiz.cargo ? m.raiz.nome : m.raiz.nome + ' · ' + m.raiz.cargo;
-  const ponto = v => S.sem && v != null ? `<span class="ponto" style="background:${corSem(v)}"></span>` : '';
+  const objs = m.todas.flatMap(p => p.okrs.map((o, i) => ({ p, o, i })));
+  const comPct = objs.filter(x => x.o.pct != null);
   const cards = [];
-  if (m.bhag) cards.push(`<div class="kpi escuro"><div class="rot">BHAG · ${esc(m.bhag.titulo)}</div><div class="v">${fmt(m.bhag.pct)}</div></div>`);
-  cards.push(m.bhag
-    ? `<div class="kpi"><div class="rot el">${esc(rot)}</div><div class="v" ${S.sem && m.raiz.pct != null ? `style="color:${corSem(m.raiz.pct)}"` : ''}>${fmt(m.raiz.pct)}</div></div>`
-    : `<div class="kpi escuro"><div class="rot el">${esc(rot)}</div><div class="v">${fmt(m.raiz.pct)}${ponto(m.raiz.pct)}</div></div>`);
-  cards.push(`<div class="kpi"><div class="rot">Pessoas</div><div class="v">${m.todas.filter(p => p.personId).length}</div></div>`);
-  cards.push(`<div class="kpi"><div class="rot">Objetivos até ${CONFIG.semaforo.amarelo}%</div><div class="v">${vermelhos} <small>de ${objs.length}</small></div></div>`);
-  return `<div class="kpis">${cards.join('')}</div>`;
+
+  // 1. Ritmo do trimestre
+  const frac = fracTrimestre(S.tri), v = m.raiz.pct;
+  const rot = m.raiz.nome === m.raiz.cargo || !m.raiz.cargo ? m.raiz.nome : m.raiz.nome + ' · ' + m.raiz.cargo;
+  let ritmo = '';
+  if (frac != null && v != null) {
+    const esperado = frac * 100, dif = v - esperado;
+    const q = triLabel(S.tri).split(' ')[0];
+    ritmo = frac >= 1 ? `${q} encerrado` : frac <= 0 ? `${q} ainda não começou`
+      : `${Math.round(esperado)}% do ${q} já passou · ${dif >= 10 ? 'acima do ritmo' : dif >= -5 ? 'no ritmo' : 'abaixo do ritmo'}`;
+  }
+  cards.push(`<div class="kpi escuro" title="${esc(rot)}">
+    <div class="rot el">Ritmo do trimestre</div>
+    <div class="v">${fmt(v)}</div>
+    <div class="trilho trilho-ritmo"><i style="width:${Math.max(0, Math.min(100, v || 0))}%;background:${S.sem && v != null ? corSem(v) : 'var(--branco)'}"></i>${frac != null && frac > 0 && frac < 1 ? `<span class="marca-ritmo" style="left:${(frac * 100).toFixed(1)}%"></span>` : ''}</div>
+    <div class="sub">${esc(ritmo)}</div></div>`);
+
+  // 2. Semáforo
+  const f = [0, 0, 0, 0]; comPct.forEach(x => f[faixa(x.o.pct)]++);
+  const semRes = objs.length - comPct.length;
+  cards.push(`<div class="kpi"><div class="rot">Semáforo · ${objs.length} objetivos</div>
+    <div class="pilha">${f[3] ? `<i style="flex:${f[3]};background:var(--verde)"></i>` : ''}${f[2] ? `<i style="flex:${f[2]};background:var(--amarelo)"></i>` : ''}${f[1] ? `<i style="flex:${f[1]};background:var(--vermelho)"></i>` : ''}${semRes ? `<i style="flex:${semRes};background:var(--trilho)"></i>` : ''}</div>
+    <div class="sub"><b style="color:var(--verde)">${f[3]}</b> no verde · <b style="color:#B08500">${f[2]}</b> no amarelo · <b style="color:var(--vermelho)">${f[1]}</b> no vermelho${semRes ? ` · ${semRes} sem resultado` : ''}</div></div>`);
+
+  // 3. Pontos de atenção
+  // só objetivos com algum resultado chave lançado (os sem lançamento aparecem no quadro Preenchimento)
+  const piores = comPct.filter(x => (x.o.krs || []).some(krLancado)).sort((a, b) => a.o.pct - b.o.pct).slice(0, 3);
+  cards.push(`<div class="kpi"><div class="rot">Pontos de atenção</div>
+    <div class="aten">${piores.length ? piores.map(({ p, o, i }) => `<div class="aten-l" onclick="abrirOkr(${reg(p)},${i})" title="${esc(p.nome + ' · ' + rotObj(o))}"><span class="tx"><span class="t2">${esc(o.codigo ? o.codigo + ' · ' : '')}${esc(o.titulo)}</span><small class="el">${esc(p.nome)}</small></span><b style="color:${S.sem ? corSem(o.pct) : 'inherit'}">${fmt0(o.pct)}</b></div>`).join('') : '<div class="sub">Nenhum resultado lançado ainda.</div>'}</div></div>`);
+
+  // 4. Preenchimento
+  const krs = objs.flatMap(x => x.o.krs || []);
+  const lanc = krs.filter(krLancado).length, pctL = krs.length ? lanc / krs.length * 100 : null;
+  cards.push(`<div class="kpi"><div class="rot">Preenchimento</div>
+    <div class="v">${pctL == null ? '–' : Math.round(pctL) + '%'}</div>
+    <div class="trilho"><i style="width:${pctL || 0}%;background:var(--preto)"></i></div>
+    <div class="sub">${krs.length ? `${krs.length - lanc} de ${krs.length} resultados chave sem lançamento` : 'Nenhum resultado chave cadastrado'}</div></div>`);
+
+  const bhag = m.bhag ? `<div class="bhag"><span class="rot">BHAG</span><span class="el">${esc(m.bhag.titulo)}</span><div class="trilho"><i style="width:${Math.max(0, Math.min(100, m.bhag.pct || 0))}%;background:var(--preto)"></i></div><b>${fmt(m.bhag.pct)}</b></div>` : '';
+  return bhag + `<div class="kpis">${cards.join('')}</div>`;
 }
 function navApresentacao() {
   if (!S.apres) return '';
