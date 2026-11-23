@@ -137,6 +137,52 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 .kr{background:var(--sup);border-radius:12px;padding:12px 14px;font-size:12px}
 .kr .peq{line-height:1.5}
 
+
+/* Páginas de empresa e de time */
+.volta{display:inline-block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza-escuro);text-decoration:none;margin-bottom:10px}
+.volta:hover{color:var(--preto)}
+.hz{position:relative;background:var(--preto);color:var(--branco);border-radius:18px;padding:22px 24px 20px 64px;overflow:hidden}
+.hz-pat{position:absolute;left:0;top:0;bottom:0;width:40px;background:repeating-linear-gradient(150deg,var(--marca) 0 10px,#000 10px 20px)}
+.hz-brilho{position:absolute;right:-90px;top:-110px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,var(--marca) 0%,transparent 65%);opacity:.32;pointer-events:none}
+.hz-topo{position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap}
+.hz-eb{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cinza-claro);margin-bottom:6px}
+.hz-nome{font-weight:700;font-size:clamp(28px,4vw,44px);letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.hz-sub{font-weight:400;font-size:.38em;letter-spacing:.3em;vertical-align:middle}
+.hz-big{font-weight:700;font-size:clamp(40px,6vw,64px);line-height:1;text-align:right;font-variant-numeric:tabular-nums}
+.hz-big small{display:block;font-weight:400;font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cinza-claro);margin-top:6px}
+.hz-3{position:relative;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-top:18px}
+.hz-m{background:rgba(255,255,255,.07);border-radius:12px;padding:10px 12px;min-width:0;display:flex;flex-direction:column;gap:4px}
+.hz-m span{font-size:11px;color:var(--cinza-claro);letter-spacing:.04em;line-height:1.35}
+.hz-m>span:first-child{letter-spacing:.14em;text-transform:uppercase}
+.hz-m b{font-weight:700;font-size:13px}
+.hz-m b.g{font-size:22px;line-height:1.1}
+.hz-tr{background:rgba(255,255,255,.18)!important;overflow:visible;position:relative;margin:6px 0 2px}
+.hz-vazio{position:relative;margin-top:14px;color:var(--cinza-claro);font-size:13px}
+.lembrete{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-radius:14px;padding:12px 16px;margin-top:12px;font-size:13px;background:rgba(198,40,40,.08);color:#8E1B1B}
+.lembrete.ok{background:rgba(46,125,50,.09);color:#1B5E20}
+.lembrete .ponto{margin-right:8px;vertical-align:1px}
+.pend{display:flex;flex-wrap:wrap;gap:6px}
+.pend-c{font-size:12px;border-radius:99px;padding:6px 12px;background:var(--sup)}
+.pend-c b{color:var(--vermelho)}
+.tcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.tc{display:flex;flex-direction:column;gap:8px;background:var(--sup);border-radius:var(--raio);padding:16px 18px;color:inherit;text-decoration:none;transition:background .35s var(--ease),color .35s,transform .35s var(--ease),box-shadow .35s var(--ease);min-width:0}
+.tc:hover{background:var(--preto);color:var(--branco);transform:translateY(-3px);box-shadow:0 14px 32px rgba(17,17,17,.2)}
+.tc-h{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;font-size:15px}
+.tc-h b{font-size:26px;font-variant-numeric:tabular-nums}
+.tc .trilho{position:relative;overflow:visible}
+.tc .marca-ritmo{background:var(--preto)}
+.tc:hover .marca-ritmo{background:var(--branco)}
+.tc:hover .trilho{background:rgba(255,255,255,.18)}
+.tc-s{font-size:12px;color:var(--cinza-escuro)}
+.tc:hover .tc-s{color:var(--cinza-claro)}
+.tc-s .ponto{margin-right:6px;vertical-align:1px}
+.tc-ir{font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:right;margin-top:2px}
+.mv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mv-t{font-size:13px;line-height:1.55}
+.vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.vals span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--cinza-claro);color:var(--cinza-escuro);border-radius:99px;padding:6px 12px}
+@media (max-width:560px){.hz{padding:18px 16px 16px 50px}.hz-pat{width:30px}.hz-big{text-align:left}}
+
 /* Rodapé */
 .rodape{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:22px;padding-top:14px;border-top:1px solid var(--linha);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-escuro)}
 .aviso{background:var(--sup);border-radius:10px;padding:10px 14px;font-size:12px;margin-top:14px;color:var(--cinza-escuro)}
@@ -221,7 +267,42 @@ const CONFIG = {
     EDIFICA:          { nome: 'Edifica',               destaque: '#008FD5' }
   },
 
-  segundosApresentacao: 30
+  segundosApresentacao: 30,
+
+  /* ===== PÁGINAS DE EMPRESA E DE TIME (SharePoint) =====
+     ?empresa=CHAVE  → página da empresa (topo + times com o resultado de cada um)
+     ?time=CHAVE     → topo da página do time (resultado, ritmo, pendências)
+     "okr" = qual página do painel de OKRs representa o time (mesma chave de "paginas").
+     Textos copiados das páginas atuais do SharePoint; ajuste aqui quando mudarem. */
+  site: 'https://grupodbvo.sharepoint.com',
+  empresas: {
+    EDIFICA: { nome: 'Edifica', sub: 'BPO', cor: '#008FD5', pagina: '/SitePages/EDIFICA.aspx',
+      missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
+      visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.',
+      times: ['OPERACOES', 'INCORPORACAO'] },
+    ENGENHARIA: { nome: 'Deltabravo', sub: 'Engenharia', cor: '#FF766C', pagina: '/SitePages/DELTABRAVOENGENHARIA.aspx',
+      missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
+      visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.',
+      times: ['ENGE', 'ENGA'] },
+    OBRAS: { nome: 'Deltabravo', sub: 'Obras', cor: '#FF766C', pagina: '/SitePages/DELTABRAVOOBRAS.aspx',
+      missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
+      visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.',
+      times: ['ENGO'] },
+    HUB: { nome: 'DBVO Hub', sub: 'Serviços', cor: '#111111', pagina: '/SitePages/DBVOHUB.aspx',
+      missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
+      visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.',
+      times: ['CSUA', 'CSUM'] }
+  },
+  times: {
+    ENGO:         { nome: 'ENGO',         empresa: 'OBRAS',      okr: 'ENGO',      link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
+    ENGE:         { nome: 'ENGE',         empresa: 'ENGENHARIA', okr: 'ENGE',      link: '/sites/ENGE-/SitePages/ENGE.aspx' },
+    ENGA:         { nome: 'ENGA',         empresa: 'ENGENHARIA', okr: 'ENGE',      link: '/sites/ENGE-/SitePages/ENGA.aspx' },
+    CSUA:         { nome: 'CSUA',         empresa: 'HUB',        okr: 'CSUA',      link: '/sites/DBVOHUB/SitePages/CSUA.aspx' },
+    CSUM:         { nome: 'CSUM',         empresa: 'HUB',        okr: 'CSUM+EDFC', link: '/sites/DBVOHUB/SitePages/CSUM.aspx' },
+    OPERACOES:    { nome: 'Operações',    empresa: 'EDIFICA',    okr: 'EDFE',      link: '/sites/edificaexpansao/SitePages/OPERAÇÕES.aspx' },
+    INCORPORACAO: { nome: 'Incorporação', empresa: 'EDIFICA',    okr: 'CSUA',      link: '/sites/EDIFICA-Incorporao/SitePages/INCORPORACAO.aspx' }
+  },
+  valores: ['Inovação', 'Resultados acima de tudo', 'Ousadia', 'Protagonismo', 'Colaboratividade']
 };
 
 /* =====================================================================
@@ -490,6 +571,12 @@ const S = {
   auto: null, ouvinte: null
 };
 if (!CONFIG.paginas[S.pagina]) S.pagina = 'GERAL';
+// Páginas de empresa/time do SharePoint
+S.time = (qs.get('time') || '').toUpperCase();
+S.empresa = (qs.get('empresa') || '').toUpperCase();
+if (S.time && !CONFIG.times[S.time]) S.time = '';
+if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
+if (S.time) S.pagina = CONFIG.times[S.time].okr;
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
 
 const $ = s => document.querySelector(s);
@@ -751,6 +838,7 @@ function navApresentacao() {
 function render() {
   REG = [];
   const raiz = $('#raiz');
+  if (S.time || S.empresa) { renderSharepoint(raiz); return; }
   const idv = aplicarIdv(S.pagina);
   document.body.classList.toggle('apres', S.apres);
   const dados = dadosTri(S.tri);
@@ -768,6 +856,97 @@ function render() {
  const sair = CONFIG.exigirLogin && CONFIG.fonte !== 'demo' && logado() ? ` · <a href="#" onclick="sair();return false" style="color:inherit">Sair</a>` : '';
   raiz.innerHTML = navApresentacao() + cabecalho(idv) + corpo + demo +
     `<div class="rodape"><span>Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}${sair}</span><span>${CONFIG.tempoReal ? 'Atualiza em tempo real' : `Atualiza automaticamente a cada ${CONFIG.horasCache} h`}</span></div>`;
+  avisarAltura();
+}
+
+/* =====================================================================
+   PÁGINAS DE EMPRESA E DE TIME
+   ===================================================================== */
+const urlSP = c => /^https?:/.test(c) ? c : CONFIG.site + c;
+function aplicarCor(cor) {
+  const r = document.documentElement.style;
+  r.setProperty('--ac', cor); r.setProperty('--ac-rgb', hexRgb(cor));
+  r.setProperty('--marca', cor === '#111111' ? '#646464' : cor);
+}
+// Resumo do resultado de uma página do painel (Head + time) no trimestre escolhido
+function resumoOkr(chavePag) {
+  const dados = dadosTri(S.tri);
+  if (!dados) return null;
+  const m = modeloPagina(dados, chavePag);
+  if (!m.raiz) return null;
+  const pct = m.raiz.pct, frac = fracTrimestre(S.tri);
+  const krs = [], pend = [];
+  m.todas.forEach(p => {
+    const ks = p.okrs.flatMap(o => o.krs || []);
+    krs.push(...ks);
+    const n = ks.filter(k => !krLancado(k)).length;
+    if (n && p.personId) pend.push({ nome: p.nome, n });
+  });
+  const lanc = krs.filter(krLancado).length;
+  pend.sort((a, b) => b.n - a.n || a.nome.localeCompare(b.nome));
+  let ritmo = null;
+  if (frac != null && pct != null) {
+    const dif = pct - frac * 100;
+    ritmo = frac >= 1 ? 'Trimestre encerrado' : frac <= 0 ? 'Trimestre não começou' : dif >= 10 ? 'Acima do ritmo' : dif >= -5 ? 'No ritmo' : 'Abaixo do ritmo';
+  }
+  return { pct, frac, ritmo, krs: krs.length, lanc, faltam: krs.length - lanc, preench: krs.length ? lanc / krs.length * 100 : null, pend };
+}
+function diasParaFechar(tri) {
+  const mt = /^(\d{4})-T(\d)$/.exec(tri || ''); if (!mt) return null;
+  const fim = new Date(+mt[1], +mt[2] * 3, 1);
+  return Math.ceil((fim - new Date()) / 864e5);
+}
+const trilhoRitmo = r => `<div class="trilho hz-tr"><i style="width:${Math.max(0, Math.min(100, r.pct || 0))}%;background:${r.pct != null ? corSem(r.pct) : 'transparent'}"></i>${r.frac != null && r.frac > 0 && r.frac < 1 ? `<span class="marca-ritmo" style="left:${(r.frac * 100).toFixed(1)}%"></span>` : ''}</div>`;
+
+function renderSharepoint(raiz) {
+  const dados = dadosTri(S.tri);
+  const q = triLabel(S.tri);
+  let html = '';
+  if (S.time) {
+    const t = CONFIG.times[S.time], e = CONFIG.empresas[t.empresa];
+    aplicarCor(e.cor);
+    const r = dados ? resumoOkr(t.okr) : null;
+    const dias = diasParaFechar(S.tri);
+    html = `<a class="volta" href="${esc(urlSP(e.pagina))}" target="_top">← ${esc(e.nome)} ${esc(e.sub)}</a>
+    <div class="hz">
+      <div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo">
+        <div><div class="hz-eb">${esc(e.nome)} ${esc(e.sub)} · Time</div><div class="hz-nome">${esc(t.nome)}</div></div>
+        <div class="hz-big" ${r && r.pct != null ? `style="color:${corSem(r.pct)}"` : ''}>${r ? fmt(r.pct) : '–'}<small>OKR do ${esc(q)}</small></div>
+      </div>
+      ${r ? `<div class="hz-3">
+        <div class="hz-m"><span>Ritmo</span>${trilhoRitmo(r)}<b>${esc(r.ritmo || '–')}</b></div>
+        <div class="hz-m"><span>Preenchimento</span><b class="g">${r.preench == null ? '–' : Math.round(r.preench) + '%'}</b><span>${r.krs ? (r.faltam ? `${r.faltam} de ${r.krs} resultados chave sem lançamento` : 'Todos os resultados chave lançados') : 'Nenhum resultado chave cadastrado'}</span></div>
+        <div class="hz-m"><span>Fechamento</span><b class="g">${dias == null ? '–' : dias > 0 ? dias + (dias === 1 ? ' dia' : ' dias') : 'Encerrado'}</b><span>${dias > 0 ? 'para fechar o ' + esc(q.split(' ')[0]) : esc(q)}</span></div>
+      </div>` : `<div class="hz-vazio">Ainda não há OKRs deste time em ${esc(q)}.</div>`}
+    </div>
+    ${r ? `<div class="lembrete ${r.faltam ? '' : 'ok'}"><span><span class="ponto" style="background:${r.faltam ? 'var(--vermelho)' : 'var(--verde)'}"></span>${r.faltam ? `Faltam ${r.faltam} ${r.faltam === 1 ? 'resultado chave' : 'resultados chave'} para lançar. Mantenha o OKR do time em dia.` : 'Tudo lançado. Bom trabalho, time.'}</span><a class="btn cheio" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Atualizar no app ↗</a></div>
+    ${r.pend.length ? `<div class="secao">Quem ainda precisa lançar</div><div class="pend">${r.pend.map(p => `<span class="pend-c">${esc(p.nome)} · <b>${p.n} ${p.n === 1 ? 'pendente' : 'pendentes'}</b></span>`).join('')}</div>` : ''}` : ''}`;
+  } else {
+    const e = CONFIG.empresas[S.empresa];
+    aplicarCor(e.cor);
+    const cards = e.times.map(k => {
+      const t = CONFIG.times[k]; if (!t) return '';
+      const r = dados ? resumoOkr(t.okr) : null;
+      return `<a class="tc" href="${esc(urlSP(t.link))}" target="_top">
+        <div class="tc-h"><span>${esc(t.nome)}</span><b ${r && r.pct != null ? `style="color:${corSem(r.pct)}"` : ''}>${r ? fmt(r.pct) : '–'}</b></div>
+        ${r ? trilhoRitmo(r) : ''}
+        <div class="tc-s">${r ? `${esc(r.ritmo || '')}${r.preench != null ? ' · ' + Math.round(r.preench) + '% preenchido' : ''}` : 'Sem OKRs neste trimestre'}</div>
+        ${r && r.faltam ? `<div class="tc-s"><span class="ponto" style="background:var(--vermelho)"></span>${r.faltam} ${r.faltam === 1 ? 'lançamento pendente' : 'lançamentos pendentes'}</div>` : r ? `<div class="tc-s"><span class="ponto" style="background:var(--verde)"></span>Tudo lançado</div>` : ''}
+        <div class="tc-ir">Entrar →</div></a>`;
+    }).join('');
+    html = `<div class="hz hz-emp">
+      <div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo"><div><div class="hz-eb">Empresa do grupo</div><div class="hz-nome">${esc(e.nome)} <span class="hz-sub">${esc(e.sub)}</span></div></div></div>
+    </div>
+    <div class="secao">Como estão os times · ${esc(q)}</div>
+    <div class="tcs">${cards}</div>
+    <div class="secao">Quem somos</div>
+    <div class="mv"><div class="kpi"><div class="rot">Missão</div><div class="mv-t">${esc(e.missao)}</div></div><div class="kpi"><div class="rot">Visão</div><div class="mv-t">${esc(e.visao)}</div></div></div>
+    <div class="vals">${CONFIG.valores.map(v => `<span>${esc(v)}</span>`).join('')}</div>`;
+  }
+  const em = S.pacote ? new Date(S.pacote.em) : new Date();
+  raiz.innerHTML = html + `<div class="rodape"><span>Dados do app de OKRs · atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><a href="#" onclick="atualizar();return false" style="color:inherit">Atualizar agora</a></div>`;
   avisarAltura();
 }
 
