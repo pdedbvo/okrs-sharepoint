@@ -160,6 +160,7 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 .hz-carimbo{display:block;font-weight:400;font-size:10px;letter-spacing:.08em;color:#8a8a8a;margin-top:4px;text-transform:none}
 .hz-carimbo a{color:inherit}
 .hz-carimbo a:hover{color:var(--branco)}
+.painel-time-cab{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:26px 0 18px;padding-top:18px;border-top:1px solid var(--linha)}
 .hz-doc{padding:16px 24px 16px 60px}
 .hz-doc .hz-nome{font-size:clamp(22px,3vw,30px)}
 .hz-doc .hz-eb{margin-bottom:4px}
@@ -905,6 +906,23 @@ function diasParaFechar(tri) {
 }
 const trilhoRitmo = r => `<div class="trilho hz-tr"><i style="width:${Math.max(0, Math.min(100, r.pct || 0))}%;background:${r.pct != null ? corSem(r.pct) : 'transparent'}"></i>${r.frac != null && r.frac > 0 && r.frac < 1 ? `<span class="marca-ritmo" style="left:${(r.frac * 100).toFixed(1)}%"></span>` : ''}</div>`;
 
+// Painel do time logo abaixo do topo: só a barra de ferramentas e a visualização
+// (sem título e sem os quadros de ritmo/semáforo/preenchimento, que já estão no topo)
+function painelDoTime(dados) {
+  const urlApres = (() => { const u = new URL(location.href); ['time', 'parte', 'empresa'].forEach(k => u.searchParams.delete(k)); u.searchParams.set('modo', 'apresentacao'); u.searchParams.set('pagina', S.pagina); return u.toString(); })();
+  const barra = `<div class="painel-time-cab">
+    <div class="secao" style="margin:0">OKRs do time</div>
+    <div class="barra-ferr">
+      <select class="btn" aria-label="Trimestre" onchange="trocarTrimestre(this.value)">${S.tris.map(t => `<option value="${esc(t)}" ${t === S.tri ? 'selected' : ''}>${esc(triLabel(t))}</option>`).join('')}</select>
+      <span class="grupo-btn">${ROTULOS_VIS.map(([k, r]) => `<button class="btn ${S.vis === k ? 'on' : ''}" onclick="trocarVis('${k}')">${r}</button>`).join('')}</span>
+      <button class="btn" onclick="S.sem=!S.sem;render()" title="Liga e desliga as cores de semáforo"><span class="ponto" style="background:${S.sem ? 'var(--verde)' : 'var(--cinza-claro)'}"></span>Semáforo</button>
+      <a class="btn" href="${esc(urlApres)}" target="_blank" rel="noopener">Apresentação ↗</a>
+    </div></div>`;
+  if (!dados) return barra;
+  const m = modeloPagina(dados, S.pagina);
+  if (!m.raiz) return barra + `<div class="centro mut">Sem OKRs deste time em ${esc(triLabel(S.tri))}.</div>`;
+  return barra + ({ arvore: visArvore, cards: visCards, ranking: visRanking, calor: visCalor }[S.vis] || visArvore)(m);
+}
 function carimbo() {
   const em = S.pacote ? new Date(S.pacote.em) : new Date();
   return `Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · <a href="#" onclick="atualizar();return false">Atualizar</a>`;
@@ -940,6 +958,7 @@ function renderSharepoint(raiz) {
     </div>
     ${r ? `<div class="lembrete ${r.faltam ? '' : 'ok'}"><span><span class="ponto" style="background:${r.faltam ? 'var(--vermelho)' : 'var(--verde)'}"></span>${r.faltam ? `Faltam ${r.faltam} ${r.faltam === 1 ? 'resultado chave' : 'resultados chave'} para lançar. Mantenha o OKR do time em dia.` : 'Tudo lançado. Bom trabalho, time.'}</span><a class="btn cheio" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Atualizar no app ↗</a></div>
     ${r.pend.length ? `<div class="secao">Quem ainda precisa lançar</div><div class="pend">${r.pend.map(p => `<span class="pend-c">${esc(p.nome)} · <b>${p.n} ${p.n === 1 ? 'pendente' : 'pendentes'}</b></span>`).join('')}</div>` : ''}` : ''}`;
+    if (S.parte === 'completo') html += painelDoTime(dados);
   } else {
     const e = CONFIG.empresas[S.empresa];
     aplicarCor(e.cor);
