@@ -584,7 +584,7 @@ S.empresa = (qs.get('empresa') || '').toUpperCase();
 if (S.time && !CONFIG.times[S.time]) S.time = '';
 if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
 if (S.time) S.pagina = CONFIG.times[S.time].okr;
-S.parte = (qs.get('parte') || 'topo').toLowerCase();
+S.parte = (qs.get('parte') || 'completo').toLowerCase();   // completo (padrão) | topo | documentos
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
 
 const $ = s => document.querySelector(s);
