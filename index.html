@@ -169,7 +169,7 @@ body.pagina-time .rodape-docs{padding-top:24px}
 .ecs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .ec{display:flex;flex-direction:column;border-radius:var(--raio);overflow:hidden;background:var(--sup);color:inherit;text-decoration:none;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
 .ec:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(17,17,17,.2)}
-.ec-ft{height:140px;background:var(--p) center/cover no-repeat;display:flex;align-items:flex-end;padding:12px 14px;position:relative}
+.ec-ft{height:220px;background:var(--p) center 35%/cover no-repeat;display:flex;align-items:flex-end;padding:12px 14px;position:relative}
 .ec-ft span{color:#fff;font-weight:700;font-size:28px;letter-spacing:.06em;opacity:.9}
 .ec-nm{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
 .ec:hover .ec-nm{background:var(--preto);color:var(--branco)}
@@ -334,12 +334,12 @@ const CONFIG = {
   // Empreendimentos da BE: "paleta" = cor de destaque (primeira da paleta do empreendimento).
   // "foto" = imagem do empreendimento pronto para o card da página da BE (ex.: 'fotos/BE01.jpg'); vazio = card na cor.
   empreendimentos: {
-    BE01:     { codigo: 'BE01', nome: 'BE Garden',    paleta: '#46B276', foto: '', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
-    BE02:     { codigo: 'BE02', nome: 'BE Deodoro',   paleta: '#F75F01', foto: '', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
-    BE03:     { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#111111', foto: '', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
-    BE06:     { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: '', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
-    BE09:     { codigo: 'BE09', nome: 'BE Dumont',    paleta: '#992C1A', foto: '', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
-    BEMODELO: { codigo: 'BE',   nome: 'BE Modelo',    paleta: '#111111', foto: '', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
+    BE01:     { codigo: 'BE01', nome: 'BE Garden',    paleta: '#46B276', foto: 'fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
+    BE02:     { codigo: 'BE02', nome: 'BE Deodoro',   paleta: '#F75F01', foto: 'fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
+    BE03:     { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: '', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
+    BE06:     { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: 'fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
+    BE09:     { codigo: 'BE09', nome: 'BE Dumont',    paleta: '#992C1A', foto: 'fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
+    BEMODELO: { codigo: 'BE',   nome: 'BE Modelo',    paleta: '#111111', foto: 'fotos/BEMODELO.jpg', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
   },
   times: {
     ENGO:         { nome: 'ENGO',         empresa: 'OBRAS',      okr: 'ENGO',      link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
