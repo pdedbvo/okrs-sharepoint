@@ -161,6 +161,9 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 .hz-carimbo a{color:inherit}
 .hz-carimbo a:hover{color:var(--branco)}
 .painel-time-cab{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin:26px 0 18px;padding-top:18px;border-top:1px solid var(--linha)}
+/* No iframe único do time, a faixa de documentos fica sempre colada no fim do iframe */
+body.pagina-time #raiz{min-height:100vh;display:flex;flex-direction:column;padding-bottom:0}
+body.pagina-time .rodape-docs{margin-top:auto;padding-top:28px}
 .hz-doc{padding:16px 24px 16px 60px}
 .hz-doc .hz-nome{font-size:clamp(22px,3vw,30px)}
 .hz-doc .hz-eb{margin-bottom:4px}
@@ -931,11 +934,13 @@ function renderSharepoint(raiz) {
   const dados = dadosTri(S.tri);
   const q = triLabel(S.tri);
   let html = '';
+  const faixaDocs = () => { const t = CONFIG.times[S.time], e = CONFIG.empresas[t.empresa];
+    return `<div class="hz hz-doc"><div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo"><div><div class="hz-eb">Arquivos e pastas</div><div class="hz-nome">${esc(t.nome)} <span class="hz-sub">${esc(e.nome)} ${esc(e.sub)}</span></div></div></div></div>`; };
+  document.body.classList.toggle('pagina-time', !!S.time && S.parte === 'completo');
   if (S.time && S.parte === 'documentos') {
-    const t = CONFIG.times[S.time], e = CONFIG.empresas[t.empresa];
-    aplicarCor(e.cor);
-    raiz.innerHTML = `<div class="hz hz-doc"><div class="hz-pat"></div><div class="hz-brilho"></div>
-      <div class="hz-topo"><div><div class="hz-eb">Arquivos e pastas</div><div class="hz-nome">${esc(t.nome)} <span class="hz-sub">${esc(e.nome)} ${esc(e.sub)}</span></div></div></div></div>`;
+    aplicarCor(CONFIG.empresas[CONFIG.times[S.time].empresa].cor);
+    raiz.innerHTML = faixaDocs();
     avisarAltura(); return;
   }
   if (S.time) {
@@ -958,7 +963,7 @@ function renderSharepoint(raiz) {
     </div>
     ${r ? `<div class="lembrete ${r.faltam ? '' : 'ok'}"><span><span class="ponto" style="background:${r.faltam ? 'var(--vermelho)' : 'var(--verde)'}"></span>${r.faltam ? `Faltam ${r.faltam} ${r.faltam === 1 ? 'resultado chave' : 'resultados chave'} para lançar. Mantenha o OKR do time em dia.` : 'Tudo lançado. Bom trabalho, time.'}</span><a class="btn cheio" href="${esc(CONFIG.urlApp)}" target="_blank" rel="noopener">Atualizar no app ↗</a></div>
     ${r.pend.length ? `<div class="secao">Quem ainda precisa lançar</div><div class="pend">${r.pend.map(p => `<span class="pend-c">${esc(p.nome)} · <b>${p.n} ${p.n === 1 ? 'pendente' : 'pendentes'}</b></span>`).join('')}</div>` : ''}` : ''}`;
-    if (S.parte === 'completo') html += painelDoTime(dados);
+    if (S.parte === 'completo') html += painelDoTime(dados) + (qs.get('documentos') === 'nao' ? '' : `<div class="rodape-docs">${faixaDocs()}</div>`);
   } else {
     const e = CONFIG.empresas[S.empresa];
     aplicarCor(e.cor);
