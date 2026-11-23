@@ -336,10 +336,10 @@ const CONFIG = {
   empreendimentos: {
     BE01:     { codigo: 'BE01', nome: 'BE Garden',    paleta: '#46B276', foto: 'fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
     BE02:     { codigo: 'BE02', nome: 'BE Deodoro',   paleta: '#F75F01', foto: 'fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
-    BE03:     { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: '', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
+    BE03:     { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: 'fotos/BE03.jpg', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
     BE06:     { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: 'fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
     BE09:     { codigo: 'BE09', nome: 'BE Dumont',    paleta: '#992C1A', foto: 'fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
-    BEMODELO: { codigo: 'BE',   nome: 'BE Modelo',    paleta: '#111111', foto: 'fotos/BEMODELO.jpg', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
+    BEMODELO: { codigo: 'BE',   nome: 'BE Modelo',    paleta: '#C8C8C8', foto: '', semTexto: true, link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
   },
   times: {
     ENGO:         { nome: 'ENGO',         empresa: 'OBRAS',      okr: 'ENGO',      link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
@@ -1033,7 +1033,7 @@ function renderSharepoint(raiz) {
     const emps = (e.empreendimentos || []).map(k => {
       const em = CONFIG.empreendimentos[k]; if (!em) return '';
       return `<a class="ec" href="${esc(urlSP(em.link))}" target="_top" style="--p:${esc(em.paleta)}">
-        <div class="ec-ft" ${em.foto ? `style="background-image:url('${esc(em.foto)}')"` : ''}>${em.foto ? '' : `<span>${esc(em.codigo)}</span>`}</div>
+        <div class="ec-ft" ${em.foto ? `style="background-image:url('${esc(em.foto)}')"` : ''}>${em.foto || em.semTexto ? '' : `<span>${esc(em.codigo)}</span>`}</div>
         <div class="ec-nm"><span>${esc(em.nome)}</span><b>→</b></div></a>`;
     }).join('');
     let grupo = '';
