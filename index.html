@@ -164,6 +164,21 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 /* No iframe único do time, a faixa de documentos vem logo depois dos OKRs */
 body.pagina-time #raiz{padding-bottom:0}
 body.pagina-time .rodape-docs{padding-top:24px}
+.hz-empr{padding:20px 24px 20px 64px}
+.hz-cod{font-size:12px;letter-spacing:.3em;color:var(--cinza-claro);border:1px solid rgba(255,255,255,.25);border-radius:99px;padding:6px 12px;position:relative}
+.ecs{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.ec{display:flex;flex-direction:column;border-radius:var(--raio);overflow:hidden;background:var(--sup);color:inherit;text-decoration:none;transition:transform .35s var(--ease),box-shadow .35s var(--ease)}
+.ec:hover{transform:translateY(-3px);box-shadow:0 14px 32px rgba(17,17,17,.2)}
+.ec-ft{height:140px;background:var(--p) center/cover no-repeat;display:flex;align-items:flex-end;padding:12px 14px;position:relative}
+.ec-ft span{color:#fff;font-weight:700;font-size:28px;letter-spacing:.06em;opacity:.9}
+.ec-nm{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase}
+.ec:hover .ec-nm{background:var(--preto);color:var(--branco)}
+.gr{display:flex;justify-content:space-between;align-items:center;gap:16px;background:var(--preto);color:var(--branco);border-radius:var(--raio);padding:16px 20px;text-decoration:none;transition:transform .35s var(--ease)}
+.gr:hover{transform:translateY(-3px)}
+.gr b{font-size:clamp(28px,4vw,40px);font-weight:700;font-variant-numeric:tabular-nums}
+.gr-eb{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--cinza-claro)}
+.gr-bh{font-size:13px;margin-top:6px}
+.gr-ir{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-claro);margin-top:8px}
 .hz-doc{padding:16px 24px 16px 60px}
 .hz-doc .hz-nome{font-size:clamp(22px,3vw,30px)}
 .hz-doc .hz-eb{margin-bottom:4px}
@@ -188,6 +203,7 @@ body.pagina-time .rodape-docs{padding-top:24px}
 .tc-s .ponto{margin-right:6px;vertical-align:1px}
 .tc-ir{font-size:11px;letter-spacing:.14em;text-transform:uppercase;text-align:right;margin-top:2px}
 .mv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.mv .kpi{justify-content:flex-start}
 .mv-t{font-size:13px;line-height:1.55}
 .vals{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
 .vals span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--cinza-claro);color:var(--cinza-escuro);border-radius:99px;padding:6px 12px}
@@ -301,7 +317,29 @@ const CONFIG = {
     HUB: { nome: 'DBVO Hub', sub: '', cor: '#111111', pagina: '/SitePages/DBVOHUB.aspx',
       missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
       visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.',
-      times: ['CSUA', 'CSUM'] }
+      times: ['CSUA', 'CSUM'] },
+    BE: { nome: 'BE', sub: 'A Moradia do Futuro', cor: '#111111', pagina: '/SitePages/BEAMORADIADOFUTURO.aspx',
+      missao: 'Criar experiências únicas de moradia para as pessoas.',
+      visao: 'Implantar empreendimentos inovadores e sustentáveis nas cidades, sendo a melhor opção de moradia inteligente para as pessoas, e a melhor opção de investimento para o investidor, se consolidando como a incorporadora mais inovadora e rentável do Sul do País.',
+      empreendimentos: ['BE01', 'BE02', 'BE03', 'BE06', 'BE09', 'BEMODELO'] },
+    DBVO: { nome: 'DBVO', sub: '', cor: '#111111', pagina: '/SitePages/DBVO.aspx', rotulo: 'Holding do grupo',
+      missao: 'Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.', rotuloMissao: 'Missão',
+      visao: 'Construir empreendimentos imobiliários perto de tudo, à frente do tempo.', rotuloVisao: 'Propósito',
+      okrGrupo: true, documentos: 'Diretoria e Business Analytics' },
+    ENGINE: { nome: 'Engine', sub: '', cor: '#A37DF4', pagina: '/SitePages/ENGINE.aspx', rotulo: 'Grupo DBVO',
+      missao: '', visao: '', documentos: 'Engine' },
+    INSIDE: { nome: 'Inside', sub: '', cor: '#FFB484', pagina: '/SitePages/INSIDE.aspx', rotulo: 'Grupo DBVO',
+      missao: '', visao: '', documentos: 'Inside' }
+  },
+  // Empreendimentos da BE: "paleta" = cor de destaque (primeira da paleta do empreendimento).
+  // "foto" = imagem do empreendimento pronto para o card da página da BE (ex.: 'fotos/BE01.jpg'); vazio = card na cor.
+  empreendimentos: {
+    BE01:     { codigo: 'BE01', nome: 'BE Garden',    paleta: '#46B276', foto: '', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
+    BE02:     { codigo: 'BE02', nome: 'BE Deodoro',   paleta: '#F75F01', foto: '', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
+    BE03:     { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#111111', foto: '', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
+    BE06:     { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: '', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
+    BE09:     { codigo: 'BE09', nome: 'BE Dumont',    paleta: '#992C1A', foto: '', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
+    BEMODELO: { codigo: 'BE',   nome: 'BE Modelo',    paleta: '#111111', foto: '', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
   },
   times: {
     ENGO:         { nome: 'ENGO',         empresa: 'OBRAS',      okr: 'ENGO',      link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
@@ -586,6 +624,8 @@ S.time = (qs.get('time') || '').toUpperCase();
 S.empresa = (qs.get('empresa') || '').toUpperCase();
 if (S.time && !CONFIG.times[S.time]) S.time = '';
 if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
+S.empreendimento = (qs.get('empreendimento') || '').toUpperCase();
+if (S.empreendimento && !CONFIG.empreendimentos[S.empreendimento]) S.empreendimento = '';
 if (S.time) S.pagina = CONFIG.times[S.time].okr;
 S.parte = (qs.get('parte') || 'completo').toLowerCase();   // completo (padrão) | topo | documentos
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
@@ -849,7 +889,7 @@ function navApresentacao() {
 function render() {
   REG = [];
   const raiz = $('#raiz');
-  if (S.time || S.empresa) { renderSharepoint(raiz); return; }
+  if (S.time || S.empresa || S.empreendimento) { renderSharepoint(raiz); return; }
   const idv = aplicarIdv(S.pagina);
   document.body.classList.toggle('apres', S.apres);
   const dados = dadosTri(S.tri);
@@ -938,6 +978,17 @@ function renderSharepoint(raiz) {
     return `<div class="hz hz-doc"><div class="hz-pat"></div><div class="hz-brilho"></div>
       <div class="hz-topo"><div><div class="hz-eb">Arquivos e pastas</div><div class="hz-nome">${esc(t.nome)} <span class="hz-sub">${esc(e.nome)} ${esc(e.sub)}</span></div></div></div></div>`; };
   document.body.classList.toggle('pagina-time', !!S.time && S.parte === 'completo');
+  const faixaDocsEmp = (titulo, sub) => `<div class="hz hz-doc"><div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo"><div><div class="hz-eb">Arquivos e pastas</div><div class="hz-nome">${esc(titulo)}${sub ? ` <span class="hz-sub">${esc(sub)}</span>` : ''}</div></div></div></div>`;
+  if (S.empreendimento) {
+    const em = CONFIG.empreendimentos[S.empreendimento], be = CONFIG.empresas.BE;
+    aplicarCor(em.paleta);
+    raiz.innerHTML = S.parte === 'documentos' ? faixaDocsEmp(em.nome, em.codigo) :
+      `<a class="volta" href="${esc(urlSP(be.pagina))}" target="_top">← ${esc(be.nome)} ${esc(be.sub)}</a>
+      <div class="hz hz-empr"><div class="hz-pat"></div><div class="hz-brilho"></div>
+        <div class="hz-topo"><div><div class="hz-eb">${esc(be.nome)} ${esc(be.sub)} · Empreendimento</div><div class="hz-nome">${esc(em.nome)}</div></div><span class="hz-cod">${esc(em.codigo)}</span></div></div>`;
+    avisarAltura(); return;
+  }
   if (S.time && S.parte === 'documentos') {
     aplicarCor(CONFIG.empresas[CONFIG.times[S.time].empresa].cor);
     raiz.innerHTML = faixaDocs();
@@ -967,7 +1018,8 @@ function renderSharepoint(raiz) {
   } else {
     const e = CONFIG.empresas[S.empresa];
     aplicarCor(e.cor);
-    const cards = e.times.map(k => {
+    if (S.parte === 'documentos') { raiz.innerHTML = faixaDocsEmp(e.nome, e.documentos && e.documentos !== e.nome ? e.documentos : e.sub); avisarAltura(); return; }
+    const cards = (e.times || []).map(k => {
       const t = CONFIG.times[k]; if (!t) return '';
       const r = dados ? resumoOkr(t.okr) : null;
       return `<a class="tc" href="${esc(urlSP(t.link))}" target="_top">
@@ -977,15 +1029,31 @@ function renderSharepoint(raiz) {
         ${r && r.faltam ? `<div class="tc-s"><span class="ponto" style="background:var(--vermelho)"></span>${r.faltam} ${r.faltam === 1 ? 'lançamento pendente' : 'lançamentos pendentes'}</div>` : r ? `<div class="tc-s"><span class="ponto" style="background:var(--verde)"></span>Tudo lançado</div>` : ''}
         <div class="tc-ir">Entrar →</div></a>`;
     }).join('');
+    const usaOkr = (e.times && e.times.length) || e.okrGrupo;
+    const emps = (e.empreendimentos || []).map(k => {
+      const em = CONFIG.empreendimentos[k]; if (!em) return '';
+      return `<a class="ec" href="${esc(urlSP(em.link))}" target="_top" style="--p:${esc(em.paleta)}">
+        <div class="ec-ft" ${em.foto ? `style="background-image:url('${esc(em.foto)}')"` : ''}>${em.foto ? '' : `<span>${esc(em.codigo)}</span>`}</div>
+        <div class="ec-nm"><span>${esc(em.nome)}</span><b>→</b></div></a>`;
+    }).join('');
+    let grupo = '';
+    if (e.okrGrupo && dados) {
+      const m = modeloPagina(dados, 'GERAL');
+      if (m.raiz) grupo = `<a class="gr" href="${esc(CONFIG.site)}" target="_top">
+        <div><div class="gr-eb">${esc(m.raiz.cargo || 'CEO')} · ${esc(m.raiz.nome)}</div>${m.bhag ? `<div class="gr-bh">BHAG · ${esc(m.bhag.titulo)} · ${fmt(m.bhag.pct)}</div>` : ''}<div class="gr-ir">Ver o painel completo na página inicial →</div></div>
+        <b ${m.raiz.pct != null ? `style="color:${corSem(m.raiz.pct)}"` : ''}>${fmt(m.raiz.pct)}</b></a>`;
+    }
+    const mv = [[e.rotuloMissao || 'Missão', e.missao], [e.rotuloVisao || 'Visão', e.visao]].filter(x => x[1]);
     html = `<div class="hz hz-emp">
       <div class="hz-pat"></div><div class="hz-brilho"></div>
-      <div class="hz-topo"><div><div class="hz-eb">Empresa do grupo</div><div class="hz-nome">${esc(e.nome)} <span class="hz-sub">${esc(e.sub)}</span></div></div><span class="hz-carimbo">${carimbo()}</span></div>
+      <div class="hz-topo"><div><div class="hz-eb">${esc(e.rotulo || 'Empresa do grupo')}</div><div class="hz-nome">${esc(e.nome)}${e.sub ? ` <span class="hz-sub">${esc(e.sub)}</span>` : ''}</div></div>${usaOkr ? `<span class="hz-carimbo">${carimbo()}</span>` : ''}</div>
     </div>
-    <div class="secao">Como estão os times · ${esc(q)}</div>
-    <div class="tcs">${cards}</div>
-    <div class="secao">Quem somos</div>
-    <div class="mv"><div class="kpi"><div class="rot">Missão</div><div class="mv-t">${esc(e.missao)}</div></div><div class="kpi"><div class="rot">Visão</div><div class="mv-t">${esc(e.visao)}</div></div></div>
-    <div class="vals">${CONFIG.valores.map(v => `<span>${esc(v)}</span>`).join('')}</div>`;
+    ${cards ? `<div class="secao">Como estão os times · ${esc(q)}</div><div class="tcs">${cards}</div>` : ''}
+    ${grupo ? `<div class="secao">Plano de objetivos do grupo · ${esc(q)}</div>${grupo}` : ''}
+    ${emps ? `<div class="secao">Nossos empreendimentos</div><div class="ecs">${emps}</div>` : ''}
+    ${mv.length ? `<div class="secao">Quem somos</div><div class="mv">${mv.map(x => `<div class="kpi"><div class="rot">${esc(x[0])}</div><div class="mv-t">${esc(x[1])}</div></div>`).join('')}</div>` : ''}
+    ${mv.length ? `<div class="vals">${CONFIG.valores.map(v => `<span>${esc(v)}</span>`).join('')}</div>` : ''}
+    ${e.documentos ? `<div class="rodape-docs" style="padding-top:24px">${faixaDocsEmp(e.nome, e.documentos !== e.nome ? e.documentos : '')}</div>` : ''}`;
   }
   raiz.innerHTML = html;
   avisarAltura();
