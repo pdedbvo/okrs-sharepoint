@@ -157,6 +157,12 @@ select.btn{appearance:none;-webkit-appearance:none;padding-right:28px;background
 .hz-m b{font-weight:700;font-size:13px}
 .hz-m b.g{font-size:22px;line-height:1.1}
 .hz-tr{background:rgba(255,255,255,.18)!important;overflow:visible;position:relative;margin:6px 0 2px}
+.hz-carimbo{display:block;font-weight:400;font-size:10px;letter-spacing:.08em;color:#8a8a8a;margin-top:4px;text-transform:none}
+.hz-carimbo a{color:inherit}
+.hz-carimbo a:hover{color:var(--branco)}
+.hz-doc{padding:16px 24px 16px 60px}
+.hz-doc .hz-nome{font-size:clamp(22px,3vw,30px)}
+.hz-doc .hz-eb{margin-bottom:4px}
 .hz-vazio{position:relative;margin-top:14px;color:var(--cinza-claro);font-size:13px}
 .lembrete{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-radius:14px;padding:12px 16px;margin-top:12px;font-size:13px;background:rgba(198,40,40,.08);color:#8E1B1B}
 .lembrete.ok{background:rgba(46,125,50,.09);color:#1B5E20}
@@ -577,6 +583,7 @@ S.empresa = (qs.get('empresa') || '').toUpperCase();
 if (S.time && !CONFIG.times[S.time]) S.time = '';
 if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
 if (S.time) S.pagina = CONFIG.times[S.time].okr;
+S.parte = (qs.get('parte') || 'topo').toLowerCase();
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
 
 const $ = s => document.querySelector(s);
@@ -898,10 +905,21 @@ function diasParaFechar(tri) {
 }
 const trilhoRitmo = r => `<div class="trilho hz-tr"><i style="width:${Math.max(0, Math.min(100, r.pct || 0))}%;background:${r.pct != null ? corSem(r.pct) : 'transparent'}"></i>${r.frac != null && r.frac > 0 && r.frac < 1 ? `<span class="marca-ritmo" style="left:${(r.frac * 100).toFixed(1)}%"></span>` : ''}</div>`;
 
+function carimbo() {
+  const em = S.pacote ? new Date(S.pacote.em) : new Date();
+  return `Atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} · <a href="#" onclick="atualizar();return false">Atualizar</a>`;
+}
 function renderSharepoint(raiz) {
   const dados = dadosTri(S.tri);
   const q = triLabel(S.tri);
   let html = '';
+  if (S.time && S.parte === 'documentos') {
+    const t = CONFIG.times[S.time], e = CONFIG.empresas[t.empresa];
+    aplicarCor(e.cor);
+    raiz.innerHTML = `<div class="hz hz-doc"><div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo"><div><div class="hz-eb">Arquivos e pastas</div><div class="hz-nome">${esc(t.nome)} <span class="hz-sub">${esc(e.nome)} ${esc(e.sub)}</span></div></div></div></div>`;
+    avisarAltura(); return;
+  }
   if (S.time) {
     const t = CONFIG.times[S.time], e = CONFIG.empresas[t.empresa];
     aplicarCor(e.cor);
@@ -912,7 +930,7 @@ function renderSharepoint(raiz) {
       <div class="hz-pat"></div><div class="hz-brilho"></div>
       <div class="hz-topo">
         <div><div class="hz-eb">${esc(e.nome)} ${esc(e.sub)} · Time</div><div class="hz-nome">${esc(t.nome)}</div></div>
-        <div class="hz-big" ${r && r.pct != null ? `style="color:${corSem(r.pct)}"` : ''}>${r ? fmt(r.pct) : '–'}<small>OKR do ${esc(q)}</small></div>
+        <div class="hz-big" ${r && r.pct != null ? `style="color:${corSem(r.pct)}"` : ''}>${r ? fmt(r.pct) : '–'}<small>OKR do ${esc(q)}</small><span class="hz-carimbo">${carimbo()}</span></div>
       </div>
       ${r ? `<div class="hz-3">
         <div class="hz-m"><span>Ritmo</span>${trilhoRitmo(r)}<b>${esc(r.ritmo || '–')}</b></div>
@@ -937,7 +955,7 @@ function renderSharepoint(raiz) {
     }).join('');
     html = `<div class="hz hz-emp">
       <div class="hz-pat"></div><div class="hz-brilho"></div>
-      <div class="hz-topo"><div><div class="hz-eb">Empresa do grupo</div><div class="hz-nome">${esc(e.nome)} <span class="hz-sub">${esc(e.sub)}</span></div></div></div>
+      <div class="hz-topo"><div><div class="hz-eb">Empresa do grupo</div><div class="hz-nome">${esc(e.nome)} <span class="hz-sub">${esc(e.sub)}</span></div></div><span class="hz-carimbo">${carimbo()}</span></div>
     </div>
     <div class="secao">Como estão os times · ${esc(q)}</div>
     <div class="tcs">${cards}</div>
@@ -945,8 +963,7 @@ function renderSharepoint(raiz) {
     <div class="mv"><div class="kpi"><div class="rot">Missão</div><div class="mv-t">${esc(e.missao)}</div></div><div class="kpi"><div class="rot">Visão</div><div class="mv-t">${esc(e.visao)}</div></div></div>
     <div class="vals">${CONFIG.valores.map(v => `<span>${esc(v)}</span>`).join('')}</div>`;
   }
-  const em = S.pacote ? new Date(S.pacote.em) : new Date();
-  raiz.innerHTML = html + `<div class="rodape"><span>Dados do app de OKRs · atualizado em ${em.toLocaleDateString('pt-BR')} às ${em.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span><a href="#" onclick="atualizar();return false" style="color:inherit">Atualizar agora</a></div>`;
+  raiz.innerHTML = html;
   avisarAltura();
 }
 
