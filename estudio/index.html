@@ -217,15 +217,18 @@ details.passo p{padding-left:0}
    ===================================================================== */
 const CONFIG = {
   // 'demo' guarda as alterações só neste navegador (para testar).
-  // 'firebase' lê e grava no Firestore do projeto okrs-sharepoint.
-  fonte: 'demo',
+  // 'firebase' lê e grava no Firestore do projeto sharepoint-studio. Use ?demo no link para testar.
+  fonte: /[?&]demo/.test(location.search) ? 'demo' : 'firebase',
 
-  // Projeto Firebase okrs-sharepoint (preencher quando o Firestore e o Authentication estiverem ativos).
-  // Essas chaves do Firebase são públicas por natureza; quem protege os dados são as regras do Firestore.
+  // Projeto Firebase sharepoint-studio. Essas chaves são públicas por natureza:
+  // quem protege os dados são as regras do Firestore (ver ARQUITETURA no repositório) e o login.
   firebase: {
-    apiKey: '',
-    authDomain: 'okrs-sharepoint.firebaseapp.com',
-    projectId: 'okrs-sharepoint'
+    apiKey: 'AIzaSyA1w_OOq478oTeTzebdaL29oCnvwFwWW3g',
+    authDomain: 'sharepoint-studio.firebaseapp.com',
+    projectId: 'sharepoint-studio',
+    storageBucket: 'sharepoint-studio.firebasestorage.app',
+    messagingSenderId: '811916125198',
+    appId: '1:811916125198:web:89bc106ffad62bef30885f'
   },
   colecao: 'conteudo',
 
@@ -325,11 +328,11 @@ function CONTEUDO_INICIAL() {
       { chave: 'INCORPORACAO', nome: 'Incorporação', empresa: 'EDIFICA', okr: 'CSUA', link: '/sites/EDIFICA-Incorporao/SitePages/INCORPORACAO.aspx' }
     ],
     empreendimentos: {
-      BE01: { codigo: 'BE01', nome: 'BE Garden', paleta: '#46B276', foto: '../fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
-      BE02: { codigo: 'BE02', nome: 'BE Deodoro', paleta: '#F75F01', foto: '../fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
-      BE03: { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: '../fotos/BE03.jpg', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
-      BE06: { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: '../fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
-      BE09: { codigo: 'BE09', nome: 'BE Dumont', paleta: '#992C1A', foto: '../fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
+      BE01: { codigo: 'BE01', nome: 'BE Garden', paleta: '#46B276', foto: 'fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
+      BE02: { codigo: 'BE02', nome: 'BE Deodoro', paleta: '#F75F01', foto: 'fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
+      BE03: { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: 'fotos/BE03.jpg', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
+      BE06: { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: 'fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
+      BE09: { codigo: 'BE09', nome: 'BE Dumont', paleta: '#992C1A', foto: 'fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
       BEMODELO: { codigo: 'BE', nome: 'BE Modelo', paleta: '#C8C8C8', foto: '', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
     },
     inside: {
@@ -339,7 +342,7 @@ function CONTEUDO_INICIAL() {
       ]
     },
     acessos: [
-      { email: 'sergio@exemplo.com', nome: 'Sérgio', papel: 'Administrador' }
+      { email: 'pessoa@exemplo.com', nome: 'Pessoa exemplo', papel: 'Administrador' }
     ]
   };
 }
@@ -353,6 +356,8 @@ const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clone = o => JSON.parse(JSON.stringify(o));
 const sujo = () => JSON.stringify(DADOS) !== SALVO;
+// Fotos guardadas como 'fotos/BE01.jpg' (caminho do okrs-sharepoint) ou como imagem embutida
+const srcFoto = f => !f || /^(data:|https?:)/.test(f) ? f : '../' + f;
 
 let _fb = null;
 async function firebase() {
@@ -364,38 +369,80 @@ async function firebase() {
   _fb = { fs, au, db: fs.getFirestore(app), auth: au.getAuth(app) };
   return _fb;
 }
+/* Conteúdo: coleção "conteudo" (um documento por assunto). Acessos: coleção "editores" (id = e-mail). */
+const DOCS = ['portal', 'momentos', 'empresas', 'times', 'empreendimentos', 'inside'];
+let EXISTEM = new Set(), PAPEL = 'Editor';
 async function carregar() {
   if (CONFIG.fonte === 'demo') {
+    PAPEL = 'Administrador';
     try { const s = localStorage.getItem(ARMAZEM); if (s) return JSON.parse(s); } catch (e) {}
     return CONTEUDO_INICIAL();
   }
   const { fs, db } = await firebase();
   const base = CONTEUDO_INICIAL(), out = {};
-  for (const k of Object.keys(base)) {
+  EXISTEM = new Set();
+  for (const k of DOCS) {
     const snap = await fs.getDoc(fs.doc(db, CONFIG.colecao, k));
+    if (snap.exists()) EXISTEM.add(k);
     out[k] = snap.exists() ? snap.data().v : base[k];
   }
+  const eds = await fs.getDocs(fs.collection(db, 'editores'));
+  out.acessos = eds.docs.map(d => ({ email: d.id, nome: d.data().nome || '', papel: d.data().papel || 'Editor' }));
+  const eu = out.acessos.find(a => a.email === USUARIO.email.toLowerCase());
+  PAPEL = eu ? eu.papel : 'Administrador';   // sem cadastro só passa pelas regras quem é o dono
+  if (!eu) out.acessos.unshift({ email: USUARIO.email.toLowerCase(), nome: '', papel: 'Administrador' });
   return out;
 }
 async function gravar() {
   if (CONFIG.fonte === 'demo') { try { localStorage.setItem(ARMAZEM, JSON.stringify(DADOS)); } catch (e) {} return; }
   const { fs, db } = await firebase();
-  const antes = JSON.parse(SALVO);
-  for (const k of Object.keys(DADOS)) {
-    if (JSON.stringify(DADOS[k]) === JSON.stringify(antes[k])) continue;
+  const antes = JSON.parse(SALVO), igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+  for (const k of DOCS) {
+    if (EXISTEM.has(k) && igual(DADOS[k], antes[k])) continue;
     await fs.setDoc(fs.doc(db, CONFIG.colecao, k), { v: DADOS[k], em: fs.serverTimestamp(), por: USUARIO.email });
+    EXISTEM.add(k);
+  }
+  if (PAPEL === 'Administrador') {
+    const novos = DADOS.acessos.filter(a => a.email.trim()).map(a => ({ ...a, email: a.email.trim().toLowerCase() }));
+    const velhos = antes.acessos.map(a => a.email);
+    for (const a of novos) await fs.setDoc(fs.doc(db, 'editores', a.email), { nome: a.nome, papel: a.papel });
+    for (const e of velhos) if (!novos.some(a => a.email === e)) await fs.deleteDoc(fs.doc(db, 'editores', e));
+    DADOS.acessos = novos;
   }
 }
-async function entrar(ev) {
-  ev.preventDefault();
-  const email = $('#l-email').value.trim(), senha = $('#l-senha').value;
-  const erro = $('#l-erro'); erro.textContent = '';
+async function entrar(ev, modo) {
+  ev && ev.preventDefault();
+  const email = $('#l-email').value.trim().toLowerCase(), senha = $('#l-senha').value;
+  const erro = $('#l-erro'); erro.textContent = ''; erro.style.color = '';
   try {
     if (CONFIG.fonte === 'demo') USUARIO = { email: email || 'demonstracao@dbvo' };
-    else { const { au, auth } = await firebase(); USUARIO = (await au.signInWithEmailAndPassword(auth, email, senha)).user; }
-    DADOS = await carregar(); SALVO = JSON.stringify(DADOS);
+    else {
+      const { au, auth } = await firebase();
+      if (modo === 'senha') {
+        if (!email) { erro.textContent = 'Digite o seu e-mail primeiro.'; return; }
+        // Primeiro acesso: cria a conta com uma senha aleatória e manda o link para a pessoa criar a dela.
+        try {
+          const r = new Uint32Array(4); crypto.getRandomValues(r);
+          await au.createUserWithEmailAndPassword(auth, email, 'Tmp-' + Array.from(r).join('-'));
+          await au.signOut(auth);
+        } catch (e) { if (e.code !== 'auth/email-already-in-use') throw e; }
+        await au.sendPasswordResetEmail(auth, email);
+        erro.style.color = 'var(--verde)'; erro.textContent = 'Enviamos um link para criar ou trocar a senha. Veja o seu e-mail (e a caixa de spam).';
+        return;
+      }
+      USUARIO = (await au.signInWithEmailAndPassword(auth, email, senha)).user;
+    }
+    try { DADOS = await carregar(); }
+    catch (e) {
+      if (CONFIG.fonte !== 'demo') { _fb.au.signOut(_fb.auth); USUARIO = null; }
+      erro.textContent = 'Este e-mail ainda não tem acesso ao Estúdio. Peça a um administrador.'; return;
+    }
+    SALVO = JSON.stringify(DADOS);
     desenhar();
-  } catch (e) { erro.textContent = 'Não foi possível entrar. Confira o e-mail e a senha.'; }
+  } catch (e) {
+    USUARIO = null;
+    erro.textContent = modo === 'senha' ? 'Não foi possível enviar o e-mail. Confira o endereço.' : 'Não foi possível entrar. Confira o e-mail e a senha.';
+  }
 }
 async function salvar() {
   const b = $('#b-salvar'); b.disabled = true; b.textContent = 'Salvando…';
@@ -619,7 +666,7 @@ function abaEmpreendimentos() {
       ${bloco('Dados', '', `<div class="campos">${campo('Nome', `${c}.nome`, { max: 30 })}${campo('Código', `${c}.codigo`, { max: 8 })}
         ${campo('Página no SharePoint', `${c}.link`, { l: 'lt' })}</div><div style="margin-top:12px">${seletorCor(`${c}.paleta`)}</div>`)}
       ${bloco('Foto do card', 'Aparece na página da BE. Use a foto do empreendimento pronto.', `
-        <div class="ft-emp" style="--p:${e.foto ? `url('${e.foto}')` : e.paleta}">${e.foto ? '' : ''}</div>
+        <div class="ft-emp" style="--p:${e.foto ? `url('${srcFoto(e.foto)}')` : e.paleta}">${e.foto ? '' : ''}</div>
         <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
           <button class="btn" onclick="escolherFoto(u => DADOS.empreendimentos['${SEL_EMPR}'].foto = u)">${e.foto ? 'Trocar foto' : 'Enviar foto'}</button>
           ${e.foto ? `<button class="btn perigo" onclick="por('${c}.foto',''); desenhar()">Tirar foto</button>` : ''}</div>`)}
@@ -647,8 +694,10 @@ function abaInside() {
 }
 
 function abaAcessos() {
+  if (PAPEL !== 'Administrador') return `<div class="secao">Quem pode editar</div><p class="intro">Só administradores mudam esta lista.</p>
+    <div class="bloco" style="margin-top:12px"><div class="lista">${DADOS.acessos.map(a => `<div class="item" style="grid-template-columns:1fr"><span class="el"><b>${esc(a.nome || a.email)}</b> · ${esc(a.email)} · ${esc(a.papel)}</span></div>`).join('')}</div></div>`;
   return `<div class="secao">Quem pode editar</div>
-  <p class="intro">Só quem está nesta lista consegue entrar aqui e salvar. As páginas do SharePoint continuam abertas para leitura. Cada pessoa entra com o próprio e-mail e uma senha criada no primeiro acesso.</p>
+  <p class="intro">Só quem está nesta lista consegue entrar aqui e salvar. As páginas do SharePoint continuam abertas para leitura. Depois de salvar, a pessoa abre o Estúdio, digita o e-mail e clica em "Primeiro acesso ou esqueci a senha" para receber o link e criar a senha.</p>
   <div class="blocos" style="margin-top:12px">
     ${bloco('Editores', '', lista('acessos', [
       { k: 'nome', r: 'Nome' }, { k: 'email', r: 'E-mail', tipo: 'email', l: 'l2' },
@@ -685,7 +734,7 @@ function abaManual() {
   <div class="blocos" style="margin-top:12px">
     ${bloco('De onde vem cada coisa', '', `<div class="mapa">
       <div class="caixa escura"><b>Estúdio</b><span>Você edita textos, fotos, cores e times aqui.</span></div>
-      <div class="caixa"><b>Banco de conteúdo</b><span>Firebase okrs-sharepoint. Guarda o que foi salvo aqui.</span></div>
+      <div class="caixa"><b>Banco de conteúdo</b><span>Firebase sharepoint-studio. Guarda o que foi salvo aqui.</span></div>
       <div class="caixa"><b>Páginas</b><span>portal-dbvo e okrs-sharepoint, no GitHub Pages. Leem o banco.</span></div>
       <div class="caixa"><b>SharePoint</b><span>Mostra as páginas por iframe, cada uma com altura fixa.</span></div>
       <div class="caixa"><b>App de OKRs</b><span>Os times lançam lá. O painel lê direto, sem cópia.</span></div>
@@ -723,7 +772,9 @@ function telaLogin() {
     <form class="bloco" onsubmit="entrar(event)">
       <label class="campo"><span>E-mail</span><input id="l-email" type="email" autocomplete="username" ${CONFIG.fonte === 'demo' ? '' : 'required'}></label>
       <label class="campo"><span>Senha</span><input id="l-senha" type="password" autocomplete="current-password" ${CONFIG.fonte === 'demo' ? '' : 'required'}></label>
-      <button class="btn cheio">Entrar</button><div class="erro" id="l-erro"></div>
+      <button class="btn cheio">Entrar</button>
+      ${CONFIG.fonte === 'demo' ? '' : '<button type="button" class="btn" style="margin-top:8px;border-color:transparent" onclick="entrar(null, \'senha\')">Primeiro acesso ou esqueci a senha</button>'}
+      <div class="erro" id="l-erro"></div>
     </form>
     ${CONFIG.fonte === 'demo' ? '<div class="demo-aviso">Modo demonstração: entre sem senha. As alterações ficam só neste navegador.</div>' : ''}
   </div>`;
@@ -732,7 +783,7 @@ function desenhar() {
   if (!USUARIO) return telaLogin();
   const corpo = { inicio: abaInicio, empresas: abaEmpresas, times: abaTimes, empreendimentos: abaEmpreendimentos, inside: abaInside, manual: abaManual, acessos: abaAcessos }[ABA]();
   $('#raiz').innerHTML = `${cabecalho()}${nav()}<main class="anima">${corpo}</main>
-    <div class="rodape"><span>Estúdio · SharePoint DBVO</span><span>${CONFIG.fonte === 'demo' ? 'Demonstração · dados locais' : 'Conectado ao banco okrs-sharepoint'}</span></div>`;
+    <div class="rodape"><span>Estúdio · SharePoint DBVO</span><span>${CONFIG.fonte === 'demo' ? 'Demonstração · dados locais' : 'Conectado ao banco sharepoint-studio'}</span></div>`;
   atualizarEstado();
 }
 
@@ -740,6 +791,7 @@ function desenhar() {
   const q = new URLSearchParams(location.search);
   if (q.get('aba') && ABAS.some(a => a[0] === q.get('aba'))) ABA = q.get('aba');
   if (q.has('empresa')) SEL_EMP = q.get('empresa');
+  if (q.has('demo-entrar') && CONFIG.fonte === 'demo') PAPEL = 'Administrador';
   if (q.has('demo-entrar') && CONFIG.fonte === 'demo') { USUARIO = { email: 'sergio@exemplo.com' }; DADOS = CONTEUDO_INICIAL(); SALVO = JSON.stringify(DADOS); return desenhar(); }
   telaLogin();
 })();
