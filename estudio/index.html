@@ -355,7 +355,8 @@ let DADOS = null, SALVO = '', USUARIO = null, ABA = 'inicio', SEL_EMP = 'EDIFICA
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const clone = o => JSON.parse(JSON.stringify(o));
-const sujo = () => JSON.stringify(DADOS) !== SALVO;
+// Também conta como "não salvo" quando o banco ainda não tem algum documento (primeiro uso)
+const sujo = () => JSON.stringify(DADOS) !== SALVO || (CONFIG.fonte !== 'demo' && typeof EXISTEM !== 'undefined' && (EXISTEM.size < DOCS.length || PRIMEIRO_CAD));
 // Fotos guardadas como 'fotos/BE01.jpg' (caminho do okrs-sharepoint) ou como imagem embutida
 const srcFoto = f => !f || /^(data:|https?:)/.test(f) ? f : '../' + f;
 
@@ -371,7 +372,7 @@ async function firebase() {
 }
 /* Conteúdo: coleção "conteudo" (um documento por assunto). Acessos: coleção "editores" (id = e-mail). */
 const DOCS = ['portal', 'momentos', 'empresas', 'times', 'empreendimentos', 'inside'];
-let EXISTEM = new Set(), PAPEL = 'Editor';
+let EXISTEM = new Set(), PAPEL = 'Editor', PRIMEIRO_CAD = false;
 async function carregar() {
   if (CONFIG.fonte === 'demo') {
     PAPEL = 'Administrador';
@@ -390,6 +391,7 @@ async function carregar() {
   out.acessos = eds.docs.map(d => ({ email: d.id, nome: d.data().nome || '', papel: d.data().papel || 'Editor' }));
   const eu = out.acessos.find(a => a.email === USUARIO.email.toLowerCase());
   PAPEL = eu ? eu.papel : 'Administrador';   // sem cadastro só passa pelas regras quem é o dono
+  PRIMEIRO_CAD = !eu;
   if (!eu) out.acessos.unshift({ email: USUARIO.email.toLowerCase(), nome: '', papel: 'Administrador' });
   return out;
 }
@@ -409,6 +411,7 @@ async function gravar() {
     for (const a of novos) await fs.setDoc(fs.doc(db, 'editores', a.email), { nome: a.nome, papel: a.papel });
     for (const e of velhos) if (!novos.some(a => a.email === e)) await fs.deleteDoc(fs.doc(db, 'editores', e));
     DADOS.acessos = novos;
+    PRIMEIRO_CAD = false;
   }
 }
 async function entrar(ev, modo) {
@@ -455,7 +458,7 @@ function atualizarEstado() {
   const s = sujo(), e = $('#estado'), b = $('#b-salvar'), d = $('#b-desfazer');
   if (!e) return;
   e.classList.toggle('sujo', s);
-  e.querySelector('span').textContent = s ? 'Alterações não salvas' : 'Tudo salvo';
+  e.querySelector('span').textContent = s ? (JSON.stringify(DADOS) === SALVO ? 'Clique em Salvar para criar o banco' : 'Alterações não salvas') : 'Tudo salvo';
   b.disabled = !s; b.textContent = 'Salvar'; d.hidden = !s;
 }
 window.addEventListener('beforeunload', e => { if (USUARIO && sujo()) { e.preventDefault(); e.returnValue = ''; } });
