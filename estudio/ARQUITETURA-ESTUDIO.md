@@ -1,7 +1,6 @@
 # Estúdio · site de configurações do SharePoint DBVO
 
-Estado em 24/11/2026: protótipo em modo demonstração (dados locais), ainda **não publicado**.
-Código: `okrs-sharepoint/estudio/index.html` (branch `claude/project-thread-j1a049`, fora da `main`). Prints em `estudio/prints/`.
+Estado em 24/11/2026: publicado em https://pdedbvo.github.io/okrs-sharepoint/estudio/ (projeto Firebase **sharepoint-studio**). Teste sem mexer no banco: adicionar `?demo` ao link.
 
 ## Como as peças se ligam
 
@@ -15,7 +14,7 @@ okrs-sharepoint ──lê──►  conteudo/empresas, times, empreendimentos, i
 
 - Nenhum iframe muda. As páginas passam a ler o banco e, se ele falhar, usam o conteúdo que já está no código.
 - Um documento por assunto: `portal`, `momentos`, `empresas`, `times`, `empreendimentos`, `inside`, no formato `{ v: <conteúdo>, em: <data>, por: <e-mail> }`.
-- Fotos: reduzidas no navegador (1600 px, JPEG 72%) e gravadas no próprio documento. Sem Firebase Storage, sem plano pago. Limite do Firestore: 1 MB por documento, então "momentos" vira um documento por foto quando passar de ~8 fotos.
+- Fotos: reduzidas no navegador (1280 px, JPEG 70%, até ~300 KB cada) e gravadas no próprio documento. Sem Firebase Storage, sem plano pago. Limite do Firestore: 1 MB por documento, então "momentos" vira um documento por foto quando for preciso mais que ~3 fotos.
 - Leitura pelas páginas: 1 leitura por documento por visita (com cache de 24 h no navegador, como o painel). Fica dentro da cota gratuita.
 
 ## Regras do Firestore (colar em Firestore → Regras, trocando SEU_EMAIL)
@@ -48,17 +47,10 @@ service cloud.firestore {
 
 ## Hospedagem
 
-Proposta: pasta `/estudio/` do repositório `okrs-sharepoint` → `https://pdedbvo.github.io/okrs-sharepoint/estudio/`.
+Pasta `/estudio/` do repositório `okrs-sharepoint` → `https://pdedbvo.github.io/okrs-sharepoint/estudio/`.
 O código é público, mas não tem segredo: a chave do Firebase web é pública por natureza e quem protege os dados são as regras acima + login.
 
-## O que falta do Sérgio
+## Próximos passos
 
-1. Console do Firebase, projeto **okrs-sharepoint**: criar o Firestore (modo produção, região `southamerica-east1`).
-2. Authentication → ativar "E-mail/senha" → criar o usuário dele.
-3. Configurações do projeto → "Seus apps" → adicionar app Web e mandar o bloco `firebaseConfig` (é público, pode colar no chat).
-4. Dizer quem mais edita (nome, e-mail, Administrador ou Editor).
-
-## Próximos passos depois disso
-
-1. Ligar o Estúdio ao Firestore, publicar as regras e semear o banco com o conteúdo atual.
-2. portal-dbvo e okrs-sharepoint passam a ler o banco (com reserva no código), testados em demo e com prints antes de publicar.
+1. portal-dbvo e okrs-sharepoint passam a ler o banco (com reserva no código), testados em demo e com prints antes de publicar.
+2. Momentos: um registro por foto, se precisar de mais de ~3.
