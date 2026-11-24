@@ -209,6 +209,14 @@ body.pagina-time .rodape-docs{padding-top:24px}
 .vals span{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--cinza-claro);color:var(--cinza-escuro);border-radius:99px;padding:6px 12px}
 @media (max-width:560px){.hz{padding:18px 16px 16px 50px}.hz-pat{width:30px}.hz-big{text-align:left}}
 
+/* Cronograma do Inside */
+.crono{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px}
+.cr{display:flex;gap:12px;align-items:center;background:var(--sup);border-radius:var(--raio);padding:12px 14px;min-width:0}
+.cr.foi{opacity:.55}
+.cr-d{flex:none;width:46px;height:46px;border-radius:12px;background:var(--preto);color:var(--branco);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.cr-d b{font-size:18px}.cr-d span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;margin-top:2px}
+.cr-t{min-width:0;flex:1;font-size:13px}
+
 /* Rodapé */
 .rodape{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;margin-top:22px;padding-top:14px;border-top:1px solid var(--linha);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-escuro)}
 .aviso{background:var(--sup);border-radius:10px;padding:10px 14px;font-size:12px;margin-top:14px;color:var(--cinza-escuro)}
@@ -607,6 +615,90 @@ function DEMO_ESTADO() {
 }
 
 /* =====================================================================
+   ESTÚDIO — conteúdo editável (Firebase sharepoint-studio, coleção "conteudo").
+   Leitura pública pela API REST (sem login). Se falhar, fica o que está no código.
+   Guarda uma cópia no navegador; busca de novo a cada ESTUDIO.minutos.
+   ?estudio=nao no link ignora o Estúdio (para testes).
+   ===================================================================== */
+const ESTUDIO = {
+  url: 'https://firestore.googleapis.com/v1/projects/sharepoint-studio/databases/(default)/documents/conteudo?pageSize=50&key=AIzaSyA1w_OOq478oTeTzebdaL29oCnvwFwWW3g',
+  cache: 'estudio:conteudo:v1', minutos: 10, espera: 2500
+};
+function estudioValor(v) {
+  if (!v) return null;
+  if ('stringValue' in v) return v.stringValue;
+  if ('integerValue' in v) return Number(v.integerValue);
+  if ('doubleValue' in v) return v.doubleValue;
+  if ('booleanValue' in v) return v.booleanValue;
+  if ('nullValue' in v) return null;
+  if ('timestampValue' in v) return v.timestampValue;
+  if ('arrayValue' in v) return (v.arrayValue.values || []).map(estudioValor);
+  if ('mapValue' in v) { const o = {}, f = v.mapValue.fields || {}; for (const k in f) o[k] = estudioValor(f[k]); return o; }
+  return null;
+}
+function estudioCache() {
+  if (/[?&]estudio=nao/.test(location.search)) return null;
+  try { return JSON.parse(localStorage.getItem(ESTUDIO.cache) || 'null'); } catch (e) { return null; }
+}
+async function estudioBuscar() {
+  if (/[?&]estudio=nao/.test(location.search)) return null;
+  const c = estudioCache();
+  if (c && Date.now() - c.t < ESTUDIO.minutos * 60000) return c.d;
+  try {
+    const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), ESTUDIO.espera);
+    const r = await fetch(ESTUDIO.url, { signal: ctl.signal }); clearTimeout(tm);
+    if (!r.ok) throw new Error(r.status);
+    const j = await r.json(), d = {};
+    (j.documents || []).forEach(doc => { d[doc.name.split('/').pop()] = estudioValor((doc.fields || {}).v); });
+    try { localStorage.setItem(ESTUDIO.cache, JSON.stringify({ t: Date.now(), d })); } catch (e) {}
+    return d;
+  } catch (e) { return c ? c.d : null; }
+}
+
+/* Aplica o conteúdo do Estúdio por cima do CONFIG. Só sobrescreve o que veio preenchido;
+   nunca apaga empresa, time ou empreendimento (os iframes publicados continuam valendo). */
+function aplicarEstudio(d) {
+  if (!d) return;
+  try {
+    if (d.empresas) for (const k in d.empresas) {
+      const x = d.empresas[k] || {}, e = CONFIG.empresas[k] || (CONFIG.empresas[k] = { pagina: '', times: [] });
+      if (x.nome) e.nome = x.nome;
+      ['sub', 'missao', 'visao'].forEach(f => { if (typeof x[f] === 'string') e[f] = x[f]; });
+      if (/^#[0-9a-f]{6}$/i.test(x.cor || '')) e.cor = x.cor;
+      if (x.rotulo) e.rotulo = x.rotulo;
+    }
+    if (Array.isArray(d.times)) {
+      const porEmp = {};
+      d.times.forEach(t => {
+        const k = String(t && t.chave || '').toUpperCase(); if (!k) return;
+        const v = CONFIG.times[k] || (CONFIG.times[k] = {});
+        if (t.nome) v.nome = t.nome;
+        if (t.empresa && CONFIG.empresas[t.empresa]) v.empresa = t.empresa;
+        if (t.okr && CONFIG.paginas[t.okr]) v.okr = t.okr;
+        if (typeof t.link === 'string') v.link = t.link;
+        if (!v.nome || !v.empresa || !v.okr) { delete CONFIG.times[k]; return; }
+        (porEmp[v.empresa] = porEmp[v.empresa] || []).push(k);
+      });
+      for (const k in CONFIG.empresas) if (CONFIG.empresas[k].times || porEmp[k]) CONFIG.empresas[k].times = porEmp[k] || [];
+    }
+    if (d.empreendimentos) {
+      const ks = [];
+      for (const k in d.empreendimentos) {
+        const x = d.empreendimentos[k] || {}, e = CONFIG.empreendimentos[k] || (CONFIG.empreendimentos[k] = { codigo: 'BE', nome: k, paleta: '#C8C8C8', foto: '', link: '' });
+        ['codigo', 'nome', 'foto', 'link'].forEach(f => { if (typeof x[f] === 'string') e[f] = x[f]; });
+        if (/^#[0-9a-f]{6}$/i.test(x.paleta || '')) e.paleta = x.paleta;
+        ks.push(k);
+      }
+      if (CONFIG.empresas.BE && ks.length) CONFIG.empresas.BE.empreendimentos = ks;
+    }
+    if (d.portal && Array.isArray(d.portal.valores) && d.portal.valores.length)
+      CONFIG.valores = d.portal.valores.map(v => typeof v === 'string' ? v : v && v.nome).filter(Boolean);
+    if (d.inside) CONFIG.inside = d.inside;
+  } catch (e) { console.warn('Estúdio: conteúdo ignorado', e); }
+}
+aplicarEstudio(estudioCache() && estudioCache().d);
+
+/* =====================================================================
    ESTADO E UTILITÁRIOS
    ===================================================================== */
 const qs = new URLSearchParams(location.search);
@@ -620,13 +712,16 @@ const S = {
 };
 if (!CONFIG.paginas[S.pagina]) S.pagina = 'GERAL';
 // Páginas de empresa/time do SharePoint
-S.time = (qs.get('time') || '').toUpperCase();
-S.empresa = (qs.get('empresa') || '').toUpperCase();
-if (S.time && !CONFIG.times[S.time]) S.time = '';
-if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
-S.empreendimento = (qs.get('empreendimento') || '').toUpperCase();
-if (S.empreendimento && !CONFIG.empreendimentos[S.empreendimento]) S.empreendimento = '';
-if (S.time) S.pagina = CONFIG.times[S.time].okr;
+function lerEndereco() {
+  S.time = (qs.get('time') || '').toUpperCase();
+  S.empresa = (qs.get('empresa') || '').toUpperCase();
+  if (S.time && !CONFIG.times[S.time]) S.time = '';
+  if (S.empresa && !CONFIG.empresas[S.empresa]) S.empresa = '';
+  S.empreendimento = (qs.get('empreendimento') || '').toUpperCase();
+  if (S.empreendimento && !CONFIG.empreendimentos[S.empreendimento]) S.empreendimento = '';
+  if (S.time) S.pagina = CONFIG.times[S.time].okr;
+}
+lerEndereco();
 S.parte = (qs.get('parte') || 'completo').toLowerCase();   // completo (padrão) | topo | documentos
 const ROTULOS_VIS = [['arvore', 'Árvore'], ['cards', 'Cards'], ['ranking', 'Ranking'], ['calor', 'Mapa de calor']];
 
@@ -1053,10 +1148,22 @@ function renderSharepoint(raiz) {
     ${emps ? `<div class="secao">Nossos empreendimentos</div><div class="ecs">${emps}</div>` : ''}
     ${mv.length ? `<div class="secao">Quem somos</div><div class="mv">${mv.map(x => `<div class="kpi"><div class="rot">${esc(x[0])}</div><div class="mv-t">${esc(x[1])}</div></div>`).join('')}</div>` : ''}
     ${mv.length ? `<div class="vals">${CONFIG.valores.map(v => `<span>${esc(v)}</span>`).join('')}</div>` : ''}
+    ${S.empresa === 'INSIDE' ? cronogramaInside() : ''}
     ${e.documentos ? `<div class="rodape-docs" style="padding-top:24px">${faixaDocsEmp(e.nome, e.documentos !== e.nome ? e.documentos : '')}</div>` : ''}`;
   }
   raiz.innerHTML = html;
   avisarAltura();
+}
+
+/* Cronograma do Inside (editado no Estúdio) */
+function cronogramaInside() {
+  const I = CONFIG.inside || {}, ev = (I.encontros || []).filter(x => x && x.data && x.titulo).sort((a, b) => a.data.localeCompare(b.data));
+  if (!ev.length) return '';
+  const hoje = new Date().toISOString().slice(0, 10), MES = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  return `<div class="secao">Cronograma${I.tema ? ' · ' + esc(I.tema) : ''}</div><div class="crono">${ev.map(x => {
+    const [a, m, d] = x.data.split('-'), foi = x.data < hoje;
+    return `<div class="cr ${foi ? 'foi' : ''}"><div class="cr-d"><b>${+d}</b><span>${MES[+m - 1]}</span></div>
+      <div class="cr-t"><div class="t2 b">${esc(x.titulo)}</div><div class="mut peq el">${[x.hora, x.quem, x.local].filter(Boolean).map(esc).join(' · ')}${foi ? ' · Realizado' : ''}</div></div></div>`; }).join('')}</div>`;
 }
 
 /* Detalhe de pessoa e de objetivo */
@@ -1184,6 +1291,7 @@ async function chaveValida() {
 (async function iniciar() {
   if (CONFIG.fonte !== 'demo' && CONFIG.exigirLogin && !logado() && !(await chaveValida())) { telaLogin(); return; }
   $('#raiz').innerHTML = '<div class="centro mut">Carregando…</div>';
+  aplicarEstudio(await estudioBuscar()); lerEndereco();
   carregar(false);
 })();
 </script>

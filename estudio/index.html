@@ -258,93 +258,17 @@ const TODAS_CORES = [...new Set(PALETAS.flatMap(p => p.cores))];
 const PAINEIS_OKR = ['GERAL', 'CSUA', 'CSUM+EDFC', 'ENGO', 'ENGE', 'EDFE'];
 
 /* =====================================================================
-   CONTEÚDO INICIAL — cópia do que está publicado hoje
-   (portal-dbvo/dados.js e CONFIG do okrs-sharepoint).
+   CONTEÚDO INICIAL — cópia exata do que está publicado hoje
+   (portal-dbvo/dados.js e paginas-dados.js, CONFIG do okrs-sharepoint).
+   Usado só enquanto o banco não tem o documento.
    No Firestore cada chave abaixo vira um documento da coleção "conteudo".
    ===================================================================== */
+function clone(o) { return JSON.parse(JSON.stringify(o)); }
+const INICIAL = {"portal": {"missao": "Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.", "proposito": "Construir empreendimentos imobiliários perto de tudo, à frente do tempo.", "exibir": {"ferramentas": false, "mural": false}, "numeros": [{"valor": 2013, "prefixo": "", "sufixo": "", "rotulo": "Ano de fundação", "ano": true}, {"valor": 121, "prefixo": "", "sufixo": "", "rotulo": "Unidades entregues"}, {"valor": 400, "prefixo": "+R$ ", "sufixo": " mi", "rotulo": "Em VGV lançado"}, {"valor": 5, "prefixo": "", "sufixo": "", "rotulo": "Horizontais entregues"}, {"valor": 1, "prefixo": "", "sufixo": "", "rotulo": "Vertical entregue"}, {"valor": 4, "prefixo": "", "sufixo": "", "rotulo": "Verticais em obra"}], "valores": [{"nome": "Inovação", "icone": "lampada"}, {"nome": "Resultados acima de tudo", "icone": "resultado"}, {"nome": "Ousadia", "icone": "alvo"}, {"nome": "Protagonismo", "icone": "escalada"}, {"nome": "Colaboratividade", "icone": "colaboracao"}], "avisos": [{"titulo": "Exemplo de aviso em destaque", "data": "2026-11-18", "categoria": "Comunicado", "texto": "Este é um aviso de exemplo. O texto completo aparece quando a pessoa clica no card.", "link": ""}, {"titulo": "Exemplo: treinamento de planejamento no UAU", "data": "2026-11-12", "categoria": "Treinamento", "texto": "Exemplo de aviso com link para mais informações.", "link": "#"}, {"titulo": "Exemplo: novo processo de solicitações", "data": "2026-11-03", "categoria": "Processos", "texto": "Exemplo de aviso mais antigo, sem a etiqueta de novo.", "link": ""}], "aniversariantes": [{"nome": "Pessoa Exemplo 1", "setor": "CSUA", "dia": 18, "mes": 11, "email": ""}, {"nome": "Pessoa Exemplo 2", "setor": "Obras", "dia": 22, "mes": 11, "email": ""}, {"nome": "Pessoa Exemplo 3", "setor": "Financeiro", "dia": 5, "mes": 11, "email": ""}, {"nome": "Pessoa Exemplo 4", "setor": "Comercial", "dia": 9, "mes": 12, "email": ""}], "agenda": [{"titulo": "Exemplo: Comitê de Obras", "data": "2026-11-25", "hora": "09:00", "local": "Sala de reuniões"}, {"titulo": "Exemplo: Inside", "data": "2026-12-04", "hora": "17:00", "local": "Auditório"}, {"titulo": "Exemplo: Confraternização", "data": "2026-12-12", "hora": "19:00", "local": "A definir"}], "video": {"titulo": "Conheça a BE", "youtube": "WXMVHLZGw4M"}}, "momentos": [], "ferramentas": {"areas": [{"id": "CSUA", "nome": "CSUA", "sub": "Controladoria, tesouraria e DP"}, {"id": "BA", "nome": "Business Analytics", "sub": "Dados e metas"}, {"id": "CSUM", "nome": "CSUM & EDFC", "sub": "Comercial e marketing"}], "itens": [{"area": "CSUA", "nome": "PDE", "sigla": "PDE", "d": "Processo de Desenvolvimento de Empreendimento: cada etapa, do terreno à entrega.", "u": "https://pdedbvo.github.io/Processo-De-Desenvolvimento-de-Empreendimento/"}, {"area": "CSUA", "nome": "Portal DP", "sigla": "DP", "d": "Gestão de pessoas e relacionamento: férias, holerite e solicitações ao DP.", "u": "https://portal-dp-bravo-881c5.web.app", "login": true}, {"area": "CSUA", "nome": "Central de Serviços", "sigla": "CS", "d": "Tickets centralizados: abra e acompanhe pedidos para as áreas.", "u": "https://pdedbvo.github.io/CentralDeServicos/"}, {"area": "BA", "nome": "OKRs", "sigla": "OKR", "d": "Gestão de objetivos e resultados: lance o realizado dos seus KRs.", "u": "https://okrs---bravo.web.app/", "login": true}, {"area": "BA", "nome": "Estúdio", "sigla": "EST", "d": "Configurações do SharePoint: textos, fotos, avisos, empresas e times das páginas.", "u": "https://pdedbvo.github.io/okrs-sharepoint/estudio/", "login": true}, {"area": "BA", "nome": "Comitê de Incorporação", "sigla": "CI", "d": "Andamento das obras e fotos do mês de cada empreendimento.", "u": "https://comite-de-incorporacao.web.app/", "sugestao": true}, {"area": "CSUM", "nome": "Comitê de Growth", "sigla": "CG", "d": "Indicadores e decisões do comitê comercial e de marketing.", "u": "https://comite-de-growth---comercial.web.app/", "login": true}, {"area": "CSUM", "nome": "Weekly", "sigla": "WK", "d": "Gestão de atividades: o que cada um entrega na semana.", "u": "https://weekly-social.web.app/", "login": true}]}, "empresas": {"EDIFICA": {"nome": "Edifica", "sub": "BPO", "cor": "#008FD5", "rotulo": "", "missao": "Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.", "visao": "Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada."}, "ENGENHARIA": {"nome": "Deltabravo", "sub": "Engenharia", "cor": "#FF766C", "rotulo": "", "missao": "Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.", "visao": "Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário."}, "OBRAS": {"nome": "Deltabravo", "sub": "Obras", "cor": "#FF766C", "rotulo": "", "missao": "Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.", "visao": "Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário."}, "HUB": {"nome": "DBVO Hub", "sub": "", "cor": "#111111", "rotulo": "", "missao": "Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.", "visao": "Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada."}, "BE": {"nome": "BE", "sub": "A Moradia do Futuro", "cor": "#111111", "rotulo": "Empreendimentos do grupo", "missao": "Criar experiências únicas de moradia para as pessoas.", "visao": "Implantar empreendimentos inovadores e sustentáveis nas cidades, sendo a melhor opção de moradia inteligente para as pessoas, e a melhor opção de investimento para o investidor, se consolidando como a incorporadora mais inovadora e rentável do Sul do País."}, "DBVO": {"nome": "DBVO", "sub": "", "cor": "#111111", "rotulo": "Holding do grupo", "missao": "Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.", "visao": "Construir empreendimentos imobiliários perto de tudo, à frente do tempo."}, "ENGINE": {"nome": "Engine", "sub": "", "cor": "#A37DF4", "rotulo": "Grupo DBVO", "missao": "", "visao": ""}, "INSIDE": {"nome": "Inside", "sub": "", "cor": "#FFB484", "rotulo": "Grupo DBVO", "missao": "", "visao": ""}}, "times": [{"chave": "ENGO", "nome": "ENGO", "empresa": "OBRAS", "okr": "ENGO", "link": "/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx"}, {"chave": "ENGE", "nome": "ENGE", "empresa": "ENGENHARIA", "okr": "ENGE", "link": "/sites/ENGE-/SitePages/ENGE.aspx"}, {"chave": "ENGA", "nome": "ENGA", "empresa": "ENGENHARIA", "okr": "ENGE", "link": "/sites/ENGE-/SitePages/ENGA.aspx"}, {"chave": "CSUA", "nome": "CSUA", "empresa": "HUB", "okr": "CSUA", "link": "/sites/DBVOHUB/SitePages/CSUA.aspx"}, {"chave": "CSUM", "nome": "CSUM", "empresa": "HUB", "okr": "CSUM+EDFC", "link": "/sites/DBVOHUB/SitePages/CSUM.aspx"}, {"chave": "OPERACOES", "nome": "Operações", "empresa": "EDIFICA", "okr": "EDFE", "link": "/sites/edificaexpansao/SitePages/OPERAÇÕES.aspx"}, {"chave": "INCORPORACAO", "nome": "Incorporação", "empresa": "EDIFICA", "okr": "CSUA", "link": "/sites/EDIFICA-Incorporao/SitePages/INCORPORACAO.aspx"}], "empreendimentos": {"BE01": {"codigo": "BE01", "nome": "BE Garden", "paleta": "#46B276", "foto": "fotos/BE01.jpg", "link": "/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx"}, "BE02": {"codigo": "BE02", "nome": "BE Deodoro", "paleta": "#F75F01", "foto": "fotos/BE02.jpg", "link": "/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx"}, "BE03": {"codigo": "BE03", "nome": "BE Bonifácio", "paleta": "#FCBF44", "foto": "fotos/BE03.jpg", "link": "/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx"}, "BE06": {"codigo": "BE06", "nome": "BE São Paulo", "paleta": "#7247F6", "foto": "fotos/BE06.jpg", "link": "/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx"}, "BE09": {"codigo": "BE09", "nome": "BE Dumont", "paleta": "#992C1A", "foto": "fotos/BE09.jpg", "link": "/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx"}, "BEMODELO": {"codigo": "BE", "nome": "BE Modelo", "paleta": "#C8C8C8", "foto": "", "link": "/sites/BE-MODELO/SitePages/BEMODELO.aspx"}}, "inside": {"tema": "", "encontros": []}};
 function CONTEUDO_INICIAL() {
-  return {
-    portal: {
-      missao: 'Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.',
-      proposito: 'Construir empreendimentos imobiliários perto de tudo, à frente do tempo.',
-      exibir: { ferramentas: false, mural: false },
-      numeros: [
-        { prefixo: '', valor: 2013, sufixo: '', rotulo: 'Ano de fundação' },
-        { prefixo: '', valor: 121, sufixo: '', rotulo: 'Unidades entregues' },
-        { prefixo: '+R$ ', valor: 400, sufixo: ' mi', rotulo: 'Em VGV lançado' },
-        { prefixo: '', valor: 5, sufixo: '', rotulo: 'Horizontais entregues' },
-        { prefixo: '', valor: 1, sufixo: '', rotulo: 'Vertical entregue' },
-        { prefixo: '', valor: 4, sufixo: '', rotulo: 'Verticais em obra' }
-      ],
-      valores: ['Inovação', 'Resultados acima de tudo', 'Ousadia', 'Protagonismo', 'Colaboratividade'],
-      avisos: [
-        { titulo: 'Exemplo de aviso em destaque', data: '2026-11-18', categoria: 'Comunicado', texto: 'Este é um aviso de exemplo. O texto completo aparece quando a pessoa clica no card.', link: '' },
-        { titulo: 'Exemplo: treinamento de planejamento no UAU', data: '2026-11-12', categoria: 'Treinamento', texto: 'Exemplo de aviso com link para mais informações.', link: '#' }
-      ],
-      aniversariantes: [
-        { nome: 'Pessoa Exemplo 1', setor: 'CSUA', dia: 18, mes: 11, email: '' },
-        { nome: 'Pessoa Exemplo 2', setor: 'Obras', dia: 22, mes: 11, email: '' }
-      ],
-      agenda: [
-        { titulo: 'Exemplo: Comitê de Obras', data: '2026-11-25', hora: '09:00', local: 'Sala de reuniões' },
-        { titulo: 'Exemplo: Inside', data: '2026-12-04', hora: '17:00', local: 'Auditório' }
-      ],
-      ferramentas: [
-        { nome: 'Central de Serviços', area: 'DBVO Hub', texto: 'Solicitações entre áreas.', link: '#', restrito: true },
-        { nome: 'OKRs', area: 'Gestão', texto: 'Plano de objetivos e painel de metas.', link: 'https://okrs---bravo.web.app/', restrito: true }
-      ],
-      video: { titulo: 'Conheça a BE', youtube: 'WXMVHLZGw4M' }
-    },
-    momentos: [],
-    empresas: {
-      EDIFICA: { nome: 'Edifica', sub: 'BPO', cor: '#008FD5', rotulo: 'Empresa do grupo',
-        missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
-        visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.' },
-      ENGENHARIA: { nome: 'Deltabravo', sub: 'Engenharia', cor: '#FF766C', rotulo: 'Empresa do grupo',
-        missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
-        visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.' },
-      OBRAS: { nome: 'Deltabravo', sub: 'Obras', cor: '#FF766C', rotulo: 'Empresa do grupo',
-        missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
-        visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.' },
-      HUB: { nome: 'DBVO Hub', sub: '', cor: '#111111', rotulo: 'Empresa do grupo',
-        missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
-        visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.' },
-      BE: { nome: 'BE', sub: 'A Moradia do Futuro', cor: '#111111', rotulo: 'Empreendimentos do grupo',
-        missao: 'Criar experiências únicas de moradia para as pessoas.',
-        visao: 'Implantar empreendimentos inovadores e sustentáveis nas cidades, sendo a melhor opção de moradia inteligente para as pessoas.' },
-      DBVO: { nome: 'DBVO', sub: '', cor: '#111111', rotulo: 'Holding do grupo',
-        missao: 'Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.',
-        visao: 'Construir empreendimentos imobiliários perto de tudo, à frente do tempo.' },
-      ENGINE: { nome: 'Engine', sub: '', cor: '#A37DF4', rotulo: 'Grupo DBVO', missao: '', visao: '' },
-      INSIDE: { nome: 'Inside', sub: '', cor: '#FFB484', rotulo: 'Grupo DBVO', missao: '', visao: '' }
-    },
-    times: [
-      { chave: 'ENGO', nome: 'ENGO', empresa: 'OBRAS', okr: 'ENGO', link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
-      { chave: 'ENGE', nome: 'ENGE', empresa: 'ENGENHARIA', okr: 'ENGE', link: '/sites/ENGE-/SitePages/ENGE.aspx' },
-      { chave: 'ENGA', nome: 'ENGA', empresa: 'ENGENHARIA', okr: 'ENGE', link: '/sites/ENGE-/SitePages/ENGA.aspx' },
-      { chave: 'CSUA', nome: 'CSUA', empresa: 'HUB', okr: 'CSUA', link: '/sites/DBVOHUB/SitePages/CSUA.aspx' },
-      { chave: 'CSUM', nome: 'CSUM', empresa: 'HUB', okr: 'CSUM+EDFC', link: '/sites/DBVOHUB/SitePages/CSUM.aspx' },
-      { chave: 'OPERACOES', nome: 'Operações', empresa: 'EDIFICA', okr: 'EDFE', link: '/sites/edificaexpansao/SitePages/OPERAÇÕES.aspx' },
-      { chave: 'INCORPORACAO', nome: 'Incorporação', empresa: 'EDIFICA', okr: 'CSUA', link: '/sites/EDIFICA-Incorporao/SitePages/INCORPORACAO.aspx' }
-    ],
-    empreendimentos: {
-      BE01: { codigo: 'BE01', nome: 'BE Garden', paleta: '#46B276', foto: 'fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
-      BE02: { codigo: 'BE02', nome: 'BE Deodoro', paleta: '#F75F01', foto: 'fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
-      BE03: { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: 'fotos/BE03.jpg', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
-      BE06: { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: 'fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
-      BE09: { codigo: 'BE09', nome: 'BE Dumont', paleta: '#992C1A', foto: 'fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
-      BEMODELO: { codigo: 'BE', nome: 'BE Modelo', paleta: '#C8C8C8', foto: '', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
-    },
-    inside: {
-      tema: '',
-      encontros: [
-        { data: '2026-12-04', hora: '17:00', titulo: 'Exemplo: encontro de dezembro', quem: 'A definir', local: 'Auditório' }
-      ]
-    },
-    acessos: [
-      { email: 'pessoa@exemplo.com', nome: 'Pessoa exemplo', papel: 'Administrador' }
-    ]
-  };
+  const c = clone(INICIAL);
+  c.acessos = CONFIG.fonte === 'demo' ? [{ email: 'pessoa@exemplo.com', nome: 'Pessoa exemplo', papel: 'Administrador' }] : [];
+  return c;
 }
 
 /* =====================================================================
@@ -354,7 +278,7 @@ const ARMAZEM = 'estudio:demo:v1';
 let DADOS = null, SALVO = '', USUARIO = null, ABA = 'inicio', SEL_EMP = 'EDIFICA', SEL_EMPR = 'BE01';
 const $ = s => document.querySelector(s);
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const clone = o => JSON.parse(JSON.stringify(o));
+
 // Também conta como "não salvo" quando o banco ainda não tem algum documento (primeiro uso)
 const sujo = () => JSON.stringify(DADOS) !== SALVO || (CONFIG.fonte !== 'demo' && typeof EXISTEM !== 'undefined' && (EXISTEM.size < DOCS.length || PRIMEIRO_CAD));
 // Fotos guardadas como 'fotos/BE01.jpg' (caminho do okrs-sharepoint) ou como imagem embutida
@@ -371,7 +295,7 @@ async function firebase() {
   return _fb;
 }
 /* Conteúdo: coleção "conteudo" (um documento por assunto). Acessos: coleção "editores" (id = e-mail). */
-const DOCS = ['portal', 'momentos', 'empresas', 'times', 'empreendimentos', 'inside'];
+const DOCS = ['portal', 'momentos', 'ferramentas', 'empresas', 'times', 'empreendimentos', 'inside'];
 let EXISTEM = new Set(), PAPEL = 'Editor', PRIMEIRO_CAD = false;
 async function carregar() {
   if (CONFIG.fonte === 'demo') {
@@ -563,7 +487,7 @@ function abaInicio() {
   return `<div class="secao">Página inicial do SharePoint</div>
   <div class="blocos">
     ${bloco('Seções visíveis', 'Ligue quando o conteúdo estiver pronto', `<div class="sws">
-      ${interruptor('Central de ferramentas', 'Links das ferramentas do grupo', `${p}.exibir.ferramentas`)}
+      ${interruptor('Ferramentas', 'Seção de ferramentas na página inicial', `${p}.exibir.ferramentas`)}
       ${interruptor('Mural', 'Avisos, aniversariantes e agenda', `${p}.exibir.mural`)}</div>`)}
     ${bloco('Missão e propósito', '', `<div class="campos">
       ${campo('Missão', `${p}.missao`, { area: 2, l: 'lt' })}
@@ -586,17 +510,15 @@ function abaInicio() {
     ${bloco('Agenda', '', lista(`${p}.agenda`, [
       { k: 'titulo', r: 'Evento', l: 'l2' }, { k: 'data', r: 'Data', tipo: 'date' }, { k: 'hora', r: 'Hora', tipo: 'time' }, { k: 'local', r: 'Local' }
     ], { titulo: '', data: '', hora: '', local: '' }))}
-    ${bloco('Central de ferramentas', '', lista(`${p}.ferramentas`, [
-      { k: 'nome', r: 'Nome' }, { k: 'area', r: 'Área' }, { k: 'texto', r: 'Descrição', l: 'l2' },
-      { k: 'link', r: 'Link', l: 'l2' }, { k: 'restrito', r: 'Pede login (mostra o cadeado)', chk: true }
-    ], { nome: '', area: '', texto: '', link: '', restrito: false }), { largo: true })}
+    ${bloco('Central de ferramentas', 'Página Central de ferramentas (e a seção da página inicial, se ligada)', lista('ferramentas.itens', [
+      { k: 'nome', r: 'Nome' }, { k: 'sigla', r: 'Sigla', max: 4 }, { k: 'area', r: 'Área', opcoes: DADOS.ferramentas.areas.map(a => [a.id, a.nome]) },
+      { k: 'd', r: 'Descrição', area: 2, l: 'lt' }, { k: 'u', r: 'Link (vazio = "Link em breve")', l: 'lt' }, { k: 'login', r: 'Pede login (mostra o cadeado)', chk: true }
+    ], { area: 'CSUA', nome: '', sigla: '', d: '', u: '', login: false }), { largo: true })}
   </div>`;
 }
+const ICONES = [['lampada', 'Lâmpada'], ['resultado', 'Gráfico'], ['alvo', 'Alvo'], ['escalada', 'Escalada'], ['colaboracao', 'Colaboração']];
 function valoresEd(c) {
-  const arr = pegar(c);
-  return `<div class="tags">${arr.map((v, i) => `<span class="tag"><span>${esc(v)}</span><button title="Remover" onclick="remover('${c}',${i})">×</button></span>`).join('')}</div>
-    <form class="tag-nova" onsubmit="event.preventDefault(); const t=this.v.value.trim(); if(t){ pegar('${c}').push(t[0].toUpperCase()+t.slice(1)); atualizarEstado(); desenhar(); }">
-      <input name="v" placeholder="Novo valor" maxlength="40"><button class="btn">+ Adicionar</button></form>`;
+  return lista(c, [{ k: 'nome', r: 'Valor', l: 'l2', max: 40 }, { k: 'icone', r: 'Ícone', opcoes: ICONES }], { nome: '', icone: 'lampada' });
 }
 function momentosEd() {
   const arr = DADOS.momentos;
@@ -612,16 +534,16 @@ function abaEmpresas() {
   return `<div class="secao">Empresas do grupo</div>
   <div class="duas">
     <div class="escolha">${ks.map(k => { const x = DADOS.empresas[k]; return `<button class="op ${k === SEL_EMP ? 'on' : ''}" onclick="SEL_EMP='${k}'; desenhar()">
-      <i class="bol" style="background:${x.cor}"></i><span class="el"><b class="el">${esc(x.nome)}${x.sub ? ' ' + esc(x.sub) : ''}</b><small class="el">${esc(x.rotulo)}</small></span></button>`; }).join('')}</div>
+      <i class="bol" style="background:${x.cor}"></i><span class="el"><b class="el">${esc(x.nome)}${x.sub ? ' ' + esc(x.sub) : ''}</b><small class="el">${esc(x.rotulo || 'Empresa do grupo')}</small></span></button>`; }).join('')}</div>
     <div class="blocos anima" style="grid-template-columns:1fr">
       <div class="previa"><div class="previa-rot">Prévia do cabeçalho</div>
         <div class="hz" style="--marca:${e.cor}"><div class="hz-pat"></div><div class="hz-brilho"></div>
-          <div class="hz-topo"><div style="min-width:0"><div class="hz-eb">${esc(e.rotulo)}</div><div class="hz-nome el">${esc(e.nome)}${e.sub ? ` <span style="font-weight:400;font-size:.4em;letter-spacing:.3em;vertical-align:middle">${esc(e.sub)}</span>` : ''}</div></div>
+          <div class="hz-topo"><div style="min-width:0"><div class="hz-eb">${esc(e.rotulo || 'Empresa do grupo')}</div><div class="hz-nome el">${esc(e.nome)}${e.sub ? ` <span style="font-weight:400;font-size:.4em;letter-spacing:.3em;vertical-align:middle">${esc(e.sub)}</span>` : ''}</div></div>
           <a class="btn claro" href="${CONFIG.baseOkrs}?empresa=${SEL_EMP}" target="_blank" rel="noopener">Ver página ↗</a></div></div></div>
       ${bloco('Identificação', '', `<div class="campos">
         ${campo('Nome', `${c}.nome`, { max: 30 })}${campo('Complemento', `${c}.sub`, { max: 30, ph: 'Ex.: Engenharia' })}
-        ${campo('Rótulo acima do nome', `${c}.rotulo`, { l: 'l2', max: 40 })}</div><div style="margin-top:12px">${seletorCor(`${c}.cor`)}</div>`)}
-      ${bloco('Quem somos', '', `<div class="campos">${campo(SEL_EMP === 'DBVO' ? 'Missão' : 'Missão', `${c}.missao`, { area: 3, l: 'lt' })}${campo(SEL_EMP === 'DBVO' ? 'Propósito' : 'Visão', `${c}.visao`, { area: 3, l: 'lt' })}</div>`)}
+        ${campo('Rótulo acima do nome', `${c}.rotulo`, { l: 'l2', max: 40, ph: 'Empresa do grupo' })}</div><div style="margin-top:12px">${seletorCor(`${c}.cor`)}</div>`)}
+      ${bloco('Quem somos', '', `<div class="campos">${campo('Missão', `${c}.missao`, { area: 3, l: 'lt' })}${campo(SEL_EMP === 'DBVO' ? 'Propósito' : 'Visão', `${c}.visao`, { area: 3, l: 'lt' })}</div>`)}
       ${bloco('Times desta empresa', times.length ? '' : 'Nenhum time ligado a esta empresa', times.length
         ? `<div class="tags">${times.map(t => `<span class="tag" style="padding-right:12px"><span>${esc(t)}</span></span>`).join('')}</div>` : '',
         { acao: `<button class="btn mini" onclick="irPara('times')">Editar times →</button>` })}
@@ -716,8 +638,11 @@ function iframes() {
       ['Topo e empresas', `${p}?secao=topo,empresas`, 1060], ['Painel de OKRs', `${o}?pagina=GERAL${k}`, 900],
       ['Em construção', `${p}?secao=obras`, 560], ['Grupo em números', `${p}?secao=numeros`, 420],
       ['Cultura', `${p}?secao=cultura`, 640], ['Vídeo e redes', `${p}?secao=video,redes`, 1040]]],
+    ['Páginas avulsas', [
+      ['Central de ferramentas', `${p}paginas.html?pagina=ferramentas`, 950], ['Dúvidas frequentes', `${p}paginas.html?pagina=duvidas`, 1600],
+      ['Estratégia de marca', `${p}paginas.html?pagina=marca`, 2150], ['Rotinas', `${p}paginas.html?pagina=rotinas`, 860]]],
     ['Empresas', Object.keys(DADOS.empresas).map(e => [DADOS.empresas[e].nome + (DADOS.empresas[e].sub ? ' ' + DADOS.empresas[e].sub : ''), `${o}?empresa=${e}${k}`,
-      { BE: 960, DBVO: 560, ENGINE: 260, INSIDE: 260 }[e] || 640])],
+      { BE: 960, DBVO: 560, ENGINE: 260, INSIDE: (DADOS.inside.encontros || []).length ? 400 : 260 }[e] || 640])],
     ['Times', DADOS.times.map(t => [t.nome, `${o}?time=${t.chave}${k}`, t.chave === 'ENGO' ? 1300 : t.chave === 'INCORPORACAO' ? 900 : 1000])],
     ['Empreendimentos', Object.keys(DADOS.empreendimentos).map(e => [DADOS.empreendimentos[e].nome, `${o}?empreendimento=${e}${k}`, 170])]
   ];
@@ -751,7 +676,18 @@ function abaManual() {
         <li>Troque <b>chaveHash</b> no CONFIG do okrs-sharepoint (nunca a chave em si, o repositório é público).</li>
         <li>Atualize o final <b>&amp;chave=</b> de todos os iframes do SharePoint.</li></ol></details>
       <details class="passo"><summary>De onde vêm os números dos OKRs</summary><p>O painel lê o mesmo banco do app de OKRs e faz as mesmas contas do app: o % de cada resultado chave é realizado ÷ meta (ou o inverso quando menor é melhor), o % do objetivo e da pessoa é a média ponderada pelo peso, e resultado sem lançamento conta como 0%. Os dados ficam guardados por até 24 h no navegador; o botão "Atualizar" busca de novo.</p></details>
-      <details class="passo"><summary>Quando a mudança aparece no SharePoint</summary><p>Ao salvar aqui, o conteúdo muda na hora no banco. As páginas leem de novo na próxima vez que alguém abrir (ou no botão "Atualizar"). Se não aparecer, use Ctrl+F5.</p></details>
+      <details class="passo"><summary>Quando a mudança aparece no SharePoint</summary><p>Ao salvar aqui, o banco muda na hora. Cada navegador guarda uma cópia do conteúdo e busca de novo a cada 10 minutos, então a mudança aparece em até 10 minutos (a página seguinte que a pessoa abrir já vem certa). Se o banco estiver fora do ar, as páginas usam o conteúdo que está no próprio código.</p></details>
+      <details class="passo"><summary>O que cada aba muda</summary><ol>
+        <li><b>Página inicial:</b> página inicial do SharePoint (portal-dbvo): missão, propósito, números, valores, vídeo, Momentos, mural e seções ligadas. Os valores também aparecem nas páginas das empresas.</li>
+        <li><b>Central de ferramentas:</b> a página Central de ferramentas (e a seção da página inicial, se ligada).</li>
+        <li><b>Empresas:</b> nome, rótulo, cor, missão e visão nas páginas ?empresa= e nos cabeçalhos dos times.</li>
+        <li><b>Times:</b> empresa, OKR e link de cada time. O código não muda o link de iframes que já existem.</li>
+        <li><b>Empreendimentos:</b> nome, cor, foto do card e link (página da BE e cabeçalho do empreendimento).</li>
+        <li><b>Inside:</b> missão, visão e cronograma na página do Inside. Com cronograma, aumente o iframe do Inside para uns 400.</li>
+        <li>Ainda ficam no código (portal-dbvo): empresas da página inicial, redes sociais, Dúvidas frequentes, Estratégia de marca e Rotinas.</li></ol></details>
+      <details class="passo"><summary>Liberar outra pessoa para editar</summary><ol>
+        <li>Aba Acessos: adicione nome, e-mail e papel, e salve.</li>
+        <li>No Firebase (projeto sharepoint-studio), Authentication → Usuários → Adicionar usuário, com o mesmo e-mail e uma senha. Passe a senha para a pessoa.</li></ol></details>
     </div>`, { largo: true })}
     ${bloco('Iframes em uso', 'Copie e cole na web part "Inserir". Troque SUA_CHAVE pela chave de acesso.', iframes().map(([g, l]) => `
       <div class="previa-rot" style="margin:12px 0 6px">${esc(g)}</div><div class="lista">${l.map(([n, u, a]) => `
