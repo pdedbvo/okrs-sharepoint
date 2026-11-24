@@ -17,13 +17,13 @@ okrs-sharepoint ──lê──►  conteudo/empresas, times, empreendimentos, i
 - Fotos: reduzidas no navegador (1280 px, JPEG 70%, até ~300 KB cada) e gravadas no próprio documento. Sem Firebase Storage, sem plano pago. Limite do Firestore: 1 MB por documento, então "momentos" vira um documento por foto quando for preciso mais que ~3 fotos.
 - Leitura pelas páginas: 1 leitura por documento por visita (com cache de 24 h no navegador, como o painel). Fica dentro da cota gratuita.
 
-## Regras do Firestore (colar em Firestore → Regras, trocando SEU_EMAIL)
+## Regras do Firestore (colar em Firestore → Regras)
 
 ```
 rules_version = '2';
 service cloud.firestore {
   match /databases/{db}/documents {
-    function logado() { return request.auth != null && request.auth.token.email_verified == true; }
+    function logado() { return request.auth != null && request.auth.token.email != null; }
     function dono()   { return logado() && request.auth.token.email == 'SEU_EMAIL'; }
     function cad()    { return /databases/$(db)/documents/editores/$(request.auth.token.email); }
     function editor() { return dono() || (logado() && exists(cad())); }
@@ -35,15 +35,15 @@ service cloud.firestore {
 }
 ```
 
-- SEU_EMAIL (minúsculo) é o dono: entra mesmo antes de existir a lista de editores. As regras ficam só no console, não no repositório.
-- `email_verified` impede que alguém crie uma conta com o e-mail de outra pessoa e entre: só vale quem abriu o link enviado ao e-mail.
+- SEU_EMAIL (minúsculo) é o dono. As regras ficam só no console, não no repositório.
+- **Cadastro pelo site desligado:** em Authentication → Configurações → Ações do usuário, desmarcar "Ativar criação (inscrição)". Assim só existe conta criada no console, e ninguém cria conta com o e-mail de outra pessoa. Por isso as regras não dependem de e-mail verificado (o link por e-mail falhou no Microsoft 365: o Safe Links abre e expira o link antes da pessoa).
 - A lista de editores fica fora de "conteudo" para os e-mails não ficarem públicos.
 
-## Primeiro acesso de cada pessoa
+## Liberar uma pessoa
 
-1. Um administrador adiciona a pessoa em **Acessos** e salva.
-2. A pessoa abre o Estúdio, digita o e-mail e clica em **Primeiro acesso ou esqueci a senha**.
-3. Recebe o link, cria a senha e entra. (Vale também para o dono, uma vez, para o e-mail ficar verificado.)
+1. No Estúdio, aba **Acessos**: adicionar nome, e-mail e papel, e salvar.
+2. No Firebase, Authentication → Usuários → Adicionar usuário: mesmo e-mail e uma senha. Passar a senha para a pessoa.
+3. "Esqueci a senha" no Estúdio manda link por e-mail, mas pode ser barrado pelo Microsoft 365. Alternativa: apagar e recriar o usuário no console com senha nova.
 
 ## Hospedagem
 
