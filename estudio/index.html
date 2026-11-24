@@ -1,0 +1,748 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Estúdio · SharePoint DBVO</title>
+<style>
+@font-face{font-family:N27;src:url(fontes/N27-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:N27;src:url(fontes/N27-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+:root{
+  --preto:#111111;--cinza-escuro:#646464;--cinza-claro:#C8C8C8;--branco:#FFFFFF;
+  --sup:rgba(200,200,200,.22);--sup-forte:rgba(200,200,200,.38);--linha:rgba(200,200,200,.7);
+  --raio:14px;--ease:cubic-bezier(.2,.7,.2,1);--marca:#646464;
+  --verde:#2E7D32;--amarelo:#D9A400;--vermelho:#C62828
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--branco);color:var(--preto);font-family:N27,Poppins,Montserrat,"Century Gothic",sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+button,select,input,textarea{font-family:inherit;color:inherit;font-size:13px}
+a{color:inherit}
+.mut{color:var(--cinza-escuro)}
+.el{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#raiz{padding:12px 12px 40px;max-width:1280px;margin:0 auto}
+@keyframes sobe{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.anima>*{animation:sobe .5s var(--ease) both}
+.anima>*:nth-child(2){animation-delay:.04s}.anima>*:nth-child(3){animation-delay:.08s}.anima>*:nth-child(4){animation-delay:.12s}.anima>*:nth-child(n+5){animation-delay:.16s}
+
+/* Cabeçalho preto com chevrons (mesma linguagem das páginas) */
+.hz{position:relative;background:var(--preto);color:var(--branco);border-radius:18px;padding:20px 22px 18px 62px;overflow:hidden}
+.hz-pat{position:absolute;left:0;top:0;bottom:0;width:40px;background:repeating-linear-gradient(150deg,var(--marca) 0 10px,#000 10px 20px)}
+.hz-brilho{position:absolute;right:-90px;top:-110px;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,var(--marca) 0%,transparent 65%);opacity:.32;pointer-events:none}
+.hz-topo{position:relative;display:flex;justify-content:space-between;align-items:flex-end;gap:14px;flex-wrap:wrap}
+.hz-eb{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--cinza-claro);margin-bottom:6px}
+.hz-nome{font-weight:700;font-size:clamp(26px,3.6vw,40px);letter-spacing:.03em;text-transform:uppercase;line-height:1}
+.hz-dir{display:flex;flex-direction:column;align-items:flex-end;gap:8px;min-width:0}
+.hz-user{font-size:11px;letter-spacing:.08em;color:#9a9a9a;max-width:260px}
+.estado{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-claro);display:flex;align-items:center;gap:8px}
+.estado .ponto{width:8px;height:8px;border-radius:50%;background:var(--verde)}
+.estado.sujo .ponto{background:var(--amarelo)}
+
+/* Botões em pílula */
+.btn{font-size:11px;letter-spacing:.12em;text-transform:uppercase;background:transparent;border:1px solid var(--cinza-claro);color:var(--cinza-escuro);border-radius:99px;padding:8px 14px;cursor:pointer;line-height:1.2;white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:background .25s,color .25s,border-color .25s}
+.btn:hover{border-color:var(--preto);color:var(--preto)}
+.btn.cheio{background:var(--preto);border-color:var(--preto);color:var(--branco)}
+.btn.cheio:hover{background:#333}
+.btn.claro{border-color:rgba(255,255,255,.35);color:var(--branco)}
+.btn.claro:hover{border-color:var(--branco)}
+.btn.branco{background:var(--branco);border-color:var(--branco);color:var(--preto)}
+.btn.branco:disabled{opacity:.45;cursor:default}
+.btn.mini{padding:5px 10px;font-size:10px}
+.btn.perigo:hover{border-color:var(--vermelho);color:var(--vermelho)}
+.grupo-btn{display:flex;gap:2px;padding:3px;border-radius:99px;background:var(--sup);overflow-x:auto;scrollbar-width:none;max-width:100%}
+.grupo-btn::-webkit-scrollbar{display:none}
+.grupo-btn .btn{border-color:transparent;flex:none}
+.grupo-btn .btn:hover{background:var(--sup-forte)}
+.grupo-btn .btn.on{background:var(--preto);color:var(--branco)}
+.nav{margin:14px 0 6px}
+
+/* Seções e blocos */
+.secao{font-size:12px;letter-spacing:.18em;text-transform:uppercase;color:var(--cinza-escuro);display:flex;align-items:center;gap:10px;margin:24px 0 10px}
+.secao::before{content:"";width:22px;height:2px;background:var(--preto);flex:none}
+.intro{font-size:13px;color:var(--cinza-escuro);margin:6px 0 0;max-width:760px}
+.blocos{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:12px}
+.bloco{background:var(--sup);border-radius:var(--raio);padding:16px 18px;min-width:0}
+.bloco.largo{grid-column:1/-1}
+.bloco-cab{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap}
+.bloco-tit{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;min-width:0}
+.bloco-sub{font-size:12px;color:var(--cinza-escuro);margin-top:2px;text-transform:none;letter-spacing:0;font-weight:400}
+
+/* Campos */
+.campos{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr))}
+.campo{display:flex;flex-direction:column;gap:4px;min-width:0}
+.campo.l2{grid-column:span 2}.campo.lt{grid-column:1/-1}
+@media (max-width:560px){.campo.l2{grid-column:1/-1}}
+.campo>span{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza-escuro)}
+.campo input,.campo select,.campo textarea{width:100%;min-width:0;background:var(--branco);border:1px solid transparent;border-radius:10px;padding:9px 11px;outline:none;transition:border-color .2s}
+.campo input::placeholder,.campo textarea::placeholder,.tag-nova input::placeholder{color:#a8a8a8}
+.campo textarea{resize:vertical;min-height:64px;line-height:1.5}
+.campo input:focus,.campo select:focus,.campo textarea:focus{border-color:var(--preto)}
+.campo .dica{font-size:11px;color:var(--cinza-escuro);text-transform:none;letter-spacing:0}
+.chk{display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;user-select:none}
+.chk input{accent-color:var(--preto);width:16px;height:16px}
+
+/* Interruptor */
+.sw{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--branco);border-radius:10px;padding:10px 12px;cursor:pointer;min-width:0}
+.sw .tx{min-width:0}
+.sw b{font-size:12px;letter-spacing:.1em;text-transform:uppercase;display:block}
+.sw small{font-size:11px;color:var(--cinza-escuro)}
+.sw i{flex:none;width:38px;height:22px;border-radius:99px;background:var(--cinza-claro);position:relative;transition:background .25s}
+.sw i::after{content:"";position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--branco);transition:transform .25s var(--ease)}
+.sw.on i{background:var(--preto)}
+.sw.on i::after{transform:translateX(16px)}
+.sws{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr))}
+
+/* Listas editáveis */
+.lista{display:grid;gap:8px}
+.item{background:var(--branco);border-radius:12px;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:start}
+.item-acoes{display:flex;gap:4px;padding-top:18px}
+.ic{width:28px;height:28px;border-radius:50%;border:1px solid var(--cinza-claro);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--cinza-escuro);font-size:13px;line-height:1;padding:0;transition:border-color .2s,color .2s}
+.ic:hover{border-color:var(--preto);color:var(--preto)}
+.ic.x:hover{border-color:var(--vermelho);color:var(--vermelho)}
+.ic:disabled{opacity:.3;cursor:default}
+.add{margin-top:10px}
+.vazio{font-size:12px;color:var(--cinza-escuro);background:var(--branco);border-radius:12px;padding:14px;text-align:center}
+
+/* Etiquetas (valores) */
+.tags{display:flex;flex-wrap:wrap;gap:6px}
+.tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;border:1px solid var(--cinza-claro);background:var(--branco);color:var(--cinza-escuro);border-radius:99px;padding:6px 6px 6px 12px;display:inline-flex;align-items:center;gap:6px;max-width:100%}
+.tag span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag button{border:0;background:var(--sup);width:20px;height:20px;border-radius:50%;cursor:pointer;color:var(--cinza-escuro);flex:none}
+.tag button:hover{background:var(--vermelho);color:var(--branco)}
+.tag-nova{display:flex;gap:6px;margin-top:10px}
+.tag-nova input{flex:1;min-width:0;background:var(--branco);border:1px solid transparent;border-radius:99px;padding:8px 14px;outline:none}
+.tag-nova input:focus{border-color:var(--preto)}
+
+/* Cores (só da paleta) */
+.cores{display:flex;flex-wrap:wrap;gap:6px}
+.cor{width:30px;height:30px;border-radius:50%;border:2px solid var(--branco);box-shadow:0 0 0 1px var(--cinza-claro);cursor:pointer;padding:0;transition:transform .2s var(--ease)}
+.paletas{display:flex;flex-wrap:wrap;gap:8px}
+.paleta{background:var(--branco);border-radius:12px;padding:6px 8px 8px;min-width:0;max-width:100%}
+.paleta small{display:block;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--cinza-escuro);margin-bottom:5px}
+.paleta .cores{gap:4px}.paleta .cor{width:24px;height:24px}
+.cor:hover{transform:scale(1.1)}
+.cor.on{box-shadow:0 0 0 2px var(--preto)}
+
+/* Fotos */
+.fotos{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px}
+.foto{background:var(--branco);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+.foto-img{aspect-ratio:4/3;background:var(--sup) center/cover no-repeat;position:relative}
+.foto-img .ic{position:absolute;top:6px;right:6px;background:rgba(255,255,255,.9);border-color:transparent}
+.foto input{border:0;padding:8px 10px;outline:none;background:transparent;width:100%;min-width:0;font-size:12px}
+.foto-nova{border:1px dashed var(--cinza-claro);border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px;cursor:pointer;color:var(--cinza-escuro);font-size:11px;letter-spacing:.12em;text-transform:uppercase;text-align:center;padding:10px;background:transparent;transition:border-color .2s,color .2s}
+.foto-nova:hover{border-color:var(--preto);color:var(--preto)}
+.foto-nova b{font-size:24px;font-weight:400;line-height:1}
+
+/* Seletor lateral (empresas / empreendimentos) */
+.duas{display:grid;grid-template-columns:260px minmax(0,1fr);gap:12px;align-items:start}
+@media (max-width:820px){.duas{grid-template-columns:1fr}}
+.escolha{display:grid;gap:6px}
+@media (max-width:820px){.escolha{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
+.op{display:flex;align-items:center;gap:10px;background:var(--sup);border-radius:12px;padding:10px 12px;cursor:pointer;border:0;text-align:left;min-width:0;transition:background .3s var(--ease),color .3s,transform .3s var(--ease)}
+.op:hover{transform:translateY(-2px)}
+.op.on{background:var(--preto);color:var(--branco)}
+.op .bol{width:12px;height:12px;border-radius:50%;flex:none;box-shadow:0 0 0 1px rgba(200,200,200,.6)}
+.op b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;display:block}
+.op small{font-size:11px;color:var(--cinza-escuro);display:block}
+.op.on small{color:var(--cinza-claro)}
+
+/* Prévia do cabeçalho */
+.previa .hz{padding:16px 20px 14px 58px}
+.previa .hz-nome{font-size:clamp(22px,3vw,30px)}
+.previa-rot{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza-escuro);margin-bottom:6px}
+.ft-emp{height:150px;border-radius:12px;background:var(--p) center 35%/cover no-repeat;display:flex;align-items:flex-end;padding:10px 12px;color:#fff;font-weight:700;font-size:22px;letter-spacing:.06em}
+
+/* Tabela de times */
+.tab{width:100%;border-collapse:separate;border-spacing:0 6px}
+.tab th{font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza-escuro);font-weight:400;text-align:left;padding:0 8px}
+.tab td{background:var(--branco);padding:6px 8px}
+.tab td:first-child{border-radius:10px 0 0 10px}.tab td:last-child{border-radius:0 10px 10px 0}
+.tab input,.tab select{width:100%;min-width:0;border:1px solid transparent;border-radius:8px;padding:7px 8px;background:var(--sup);outline:none}
+.tab input:focus,.tab select:focus{border-color:var(--preto)}
+@media (max-width:720px){
+  .tab thead{display:none}
+  .tab,.tab tbody,.tab tr,.tab td{display:block;width:100%}
+  .tab tr{background:var(--branco);border-radius:12px;padding:8px;margin-bottom:8px;display:grid;grid-template-columns:1fr 1fr;gap:6px}
+  .tab td{padding:0;background:transparent}
+  .tab td::before{content:attr(data-r);display:block;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--cinza-escuro);margin-bottom:3px}
+  .tab td.ac{grid-column:1/-1;display:flex;justify-content:flex-end}
+  .tab td.ac::before{display:none}
+}
+
+/* Como funciona */
+.passos{display:grid;gap:8px}
+details.passo{background:var(--branco);border-radius:12px;padding:0 14px}
+details.passo summary{cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+details.passo summary::-webkit-details-marker{display:none}
+details.passo summary::after{content:"+";font-weight:400;font-size:18px;color:var(--cinza-escuro);flex:none}
+details.passo[open] summary::after{content:"–"}
+details.passo ol,details.passo p{margin:0 0 14px;padding-left:20px;font-size:13px;line-height:1.6}
+details.passo p{padding-left:0}
+.ifr{background:var(--branco);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.ifr b{font-size:12px;letter-spacing:.08em;text-transform:uppercase;display:block}
+.ifr code{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:var(--cinza-escuro);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ifr .alt{font-size:11px;color:var(--cinza-escuro)}
+.mapa{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr));gap:10px;align-items:stretch}
+.caixa{background:var(--branco);border-radius:12px;padding:12px 14px;min-width:0}
+.caixa.escura{background:var(--preto);color:var(--branco)}
+.caixa b{display:block;font-size:12px;letter-spacing:.12em;text-transform:uppercase;margin-bottom:4px}
+.caixa span{font-size:12px;color:var(--cinza-escuro);display:block}
+.caixa.escura span{color:var(--cinza-claro)}
+.seta{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-escuro);text-align:center;padding:2px 0}
+
+/* Login */
+.login{max-width:420px;margin:40px auto 0}
+.login .bloco{margin-top:12px}
+.login .campo{margin-bottom:10px}
+.login .btn{width:100%;justify-content:center;padding:12px}
+.erro{color:var(--vermelho);font-size:12px;margin-top:8px}
+.demo-aviso{font-size:11px;letter-spacing:.08em;color:var(--cinza-escuro);text-align:center;margin-top:12px}
+
+/* Aviso flutuante */
+.toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,20px);background:var(--preto);color:var(--branco);border-radius:99px;padding:10px 18px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;opacity:0;pointer-events:none;transition:opacity .3s,transform .3s var(--ease);z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.rodape{margin-top:28px;padding-top:12px;border-top:1px solid var(--linha);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--cinza-escuro);display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+
+@media (max-width:560px){.hz{padding:18px 16px 16px 50px}.hz-pat{width:30px}.hz-dir{align-items:flex-start}.item{grid-template-columns:1fr}.item-acoes{justify-content:flex-end;padding-top:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="raiz"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="arquivo" accept="image/*" hidden>
+<script>
+/* =====================================================================
+   CONFIGURAÇÃO
+   ===================================================================== */
+const CONFIG = {
+  // 'demo' guarda as alterações só neste navegador (para testar).
+  // 'firebase' lê e grava no Firestore do projeto okrs-sharepoint.
+  fonte: 'demo',
+
+  // Projeto Firebase okrs-sharepoint (preencher quando o Firestore e o Authentication estiverem ativos).
+  // Essas chaves do Firebase são públicas por natureza; quem protege os dados são as regras do Firestore.
+  firebase: {
+    apiKey: '',
+    authDomain: 'okrs-sharepoint.firebaseapp.com',
+    projectId: 'okrs-sharepoint'
+  },
+  colecao: 'conteudo',
+
+  // Páginas publicadas (usadas nas prévias e na aba "Como funciona")
+  baseOkrs: 'https://pdedbvo.github.io/okrs-sharepoint/',
+  basePortal: 'https://pdedbvo.github.io/portal-dbvo/',
+  site: 'https://grupodbvo.sharepoint.com',
+
+  // Fotos: tamanho máximo do lado maior e qualidade do JPEG gravado no banco
+  foto: { lado: 1600, qualidade: 0.72 }
+};
+
+/* Paletas da marca (manual de marcas). Só essas cores podem ser escolhidas. */
+const PALETAS = [
+  { nome: 'DBVO, Hub e BE',  cores: ['#111111', '#646464', '#C8C8C8'] },
+  { nome: 'Edifica',         cores: ['#008FD5'] },
+  { nome: 'Delta Bravo',     cores: ['#FF766C'] },
+  { nome: 'Engine',          cores: ['#A37DF4'] },
+  { nome: 'Inside',          cores: ['#FFB484'] },
+  { nome: 'BE01 Garden',     cores: ['#46B276', '#E5FFC3', '#C3F9A6', '#B1E86A'] },
+  { nome: 'BE02 Deodoro',    cores: ['#F75F01', '#FFC67E', '#FF943F', '#FFECD2'] },
+  { nome: 'BE03 Bonifácio',  cores: ['#FCBF44', '#FFF578', '#FFDC5A'] },
+  { nome: 'BE06 São Paulo',  cores: ['#7247F6', '#847EDE', '#ABA4F6', '#E8D6EB'] },
+  { nome: 'BE09 Dumont',     cores: ['#992C1A', '#FF866E', '#DD725E', '#F9DCDC'] }
+];
+const TODAS_CORES = [...new Set(PALETAS.flatMap(p => p.cores))];
+const PAINEIS_OKR = ['GERAL', 'CSUA', 'CSUM+EDFC', 'ENGO', 'ENGE', 'EDFE'];
+
+/* =====================================================================
+   CONTEÚDO INICIAL — cópia do que está publicado hoje
+   (portal-dbvo/dados.js e CONFIG do okrs-sharepoint).
+   No Firestore cada chave abaixo vira um documento da coleção "conteudo".
+   ===================================================================== */
+function CONTEUDO_INICIAL() {
+  return {
+    portal: {
+      missao: 'Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.',
+      proposito: 'Construir empreendimentos imobiliários perto de tudo, à frente do tempo.',
+      exibir: { ferramentas: false, mural: false },
+      numeros: [
+        { prefixo: '', valor: 2013, sufixo: '', rotulo: 'Ano de fundação' },
+        { prefixo: '', valor: 121, sufixo: '', rotulo: 'Unidades entregues' },
+        { prefixo: '+R$ ', valor: 400, sufixo: ' mi', rotulo: 'Em VGV lançado' },
+        { prefixo: '', valor: 5, sufixo: '', rotulo: 'Horizontais entregues' },
+        { prefixo: '', valor: 1, sufixo: '', rotulo: 'Vertical entregue' },
+        { prefixo: '', valor: 4, sufixo: '', rotulo: 'Verticais em obra' }
+      ],
+      valores: ['Inovação', 'Resultados acima de tudo', 'Ousadia', 'Protagonismo', 'Colaboratividade'],
+      avisos: [
+        { titulo: 'Exemplo de aviso em destaque', data: '2026-11-18', categoria: 'Comunicado', texto: 'Este é um aviso de exemplo. O texto completo aparece quando a pessoa clica no card.', link: '' },
+        { titulo: 'Exemplo: treinamento de planejamento no UAU', data: '2026-11-12', categoria: 'Treinamento', texto: 'Exemplo de aviso com link para mais informações.', link: '#' }
+      ],
+      aniversariantes: [
+        { nome: 'Pessoa Exemplo 1', setor: 'CSUA', dia: 18, mes: 11, email: '' },
+        { nome: 'Pessoa Exemplo 2', setor: 'Obras', dia: 22, mes: 11, email: '' }
+      ],
+      agenda: [
+        { titulo: 'Exemplo: Comitê de Obras', data: '2026-11-25', hora: '09:00', local: 'Sala de reuniões' },
+        { titulo: 'Exemplo: Inside', data: '2026-12-04', hora: '17:00', local: 'Auditório' }
+      ],
+      ferramentas: [
+        { nome: 'Central de Serviços', area: 'DBVO Hub', texto: 'Solicitações entre áreas.', link: '#', restrito: true },
+        { nome: 'OKRs', area: 'Gestão', texto: 'Plano de objetivos e painel de metas.', link: 'https://okrs---bravo.web.app/', restrito: true }
+      ],
+      video: { titulo: 'Conheça a BE', youtube: 'WXMVHLZGw4M' }
+    },
+    momentos: [],
+    empresas: {
+      EDIFICA: { nome: 'Edifica', sub: 'BPO', cor: '#008FD5', rotulo: 'Empresa do grupo',
+        missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
+        visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.' },
+      ENGENHARIA: { nome: 'Deltabravo', sub: 'Engenharia', cor: '#FF766C', rotulo: 'Empresa do grupo',
+        missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
+        visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.' },
+      OBRAS: { nome: 'Deltabravo', sub: 'Obras', cor: '#FF766C', rotulo: 'Empresa do grupo',
+        missao: 'Dar transparência e eficácia de engenharia para as obras de incorporadores imobiliários, utilizando o BIM e o planejamento preciso de custos e prazos.',
+        visao: 'Ser reconhecida nacionalmente como a maior difusora e aplicadora de BIM no mercado imobiliário.' },
+      HUB: { nome: 'DBVO Hub', sub: '', cor: '#111111', rotulo: 'Empresa do grupo',
+        missao: 'Impulsionar o sucesso de incorporadoras imobiliárias através de processos administrativos e gerenciais tecnológicos e inovadores para o mercado.',
+        visao: 'Ser referência nacional em gestão administrativa de empreendimentos com automação e simplificação dos processos, buscando a excelência em análise e demonstração de dados de forma visual e desburocratizada.' },
+      BE: { nome: 'BE', sub: 'A Moradia do Futuro', cor: '#111111', rotulo: 'Empreendimentos do grupo',
+        missao: 'Criar experiências únicas de moradia para as pessoas.',
+        visao: 'Implantar empreendimentos inovadores e sustentáveis nas cidades, sendo a melhor opção de moradia inteligente para as pessoas.' },
+      DBVO: { nome: 'DBVO', sub: '', cor: '#111111', rotulo: 'Holding do grupo',
+        missao: 'Ser o maior e mais rentável grupo de soluções imobiliárias de Maringá.',
+        visao: 'Construir empreendimentos imobiliários perto de tudo, à frente do tempo.' },
+      ENGINE: { nome: 'Engine', sub: '', cor: '#A37DF4', rotulo: 'Grupo DBVO', missao: '', visao: '' },
+      INSIDE: { nome: 'Inside', sub: '', cor: '#FFB484', rotulo: 'Grupo DBVO', missao: '', visao: '' }
+    },
+    times: [
+      { chave: 'ENGO', nome: 'ENGO', empresa: 'OBRAS', okr: 'ENGO', link: '/sites/DELTABRAVOOBRAS/SitePages/ENGO.aspx' },
+      { chave: 'ENGE', nome: 'ENGE', empresa: 'ENGENHARIA', okr: 'ENGE', link: '/sites/ENGE-/SitePages/ENGE.aspx' },
+      { chave: 'ENGA', nome: 'ENGA', empresa: 'ENGENHARIA', okr: 'ENGE', link: '/sites/ENGE-/SitePages/ENGA.aspx' },
+      { chave: 'CSUA', nome: 'CSUA', empresa: 'HUB', okr: 'CSUA', link: '/sites/DBVOHUB/SitePages/CSUA.aspx' },
+      { chave: 'CSUM', nome: 'CSUM', empresa: 'HUB', okr: 'CSUM+EDFC', link: '/sites/DBVOHUB/SitePages/CSUM.aspx' },
+      { chave: 'OPERACOES', nome: 'Operações', empresa: 'EDIFICA', okr: 'EDFE', link: '/sites/edificaexpansao/SitePages/OPERAÇÕES.aspx' },
+      { chave: 'INCORPORACAO', nome: 'Incorporação', empresa: 'EDIFICA', okr: 'CSUA', link: '/sites/EDIFICA-Incorporao/SitePages/INCORPORACAO.aspx' }
+    ],
+    empreendimentos: {
+      BE01: { codigo: 'BE01', nome: 'BE Garden', paleta: '#46B276', foto: '../fotos/BE01.jpg', link: '/sites/BE01-BEGARDEN/SitePages/BEGARDEN.aspx' },
+      BE02: { codigo: 'BE02', nome: 'BE Deodoro', paleta: '#F75F01', foto: '../fotos/BE02.jpg', link: '/sites/BE02-BEDEODORO/SitePages/BEDEODORO.aspx' },
+      BE03: { codigo: 'BE03', nome: 'BE Bonifácio', paleta: '#FCBF44', foto: '../fotos/BE03.jpg', link: '/sites/BE03-BEBONIFCIO/SitePages/BEBONIFACIO.aspx' },
+      BE06: { codigo: 'BE06', nome: 'BE São Paulo', paleta: '#7247F6', foto: '../fotos/BE06.jpg', link: '/sites/BE06-BeSoPaulo/SitePages/BESAOPAULO.aspx' },
+      BE09: { codigo: 'BE09', nome: 'BE Dumont', paleta: '#992C1A', foto: '../fotos/BE09.jpg', link: '/sites/BE09-BEDUMONT/SitePages/BEDUMONT.aspx' },
+      BEMODELO: { codigo: 'BE', nome: 'BE Modelo', paleta: '#C8C8C8', foto: '', link: '/sites/BE-MODELO/SitePages/BEMODELO.aspx' }
+    },
+    inside: {
+      tema: '',
+      encontros: [
+        { data: '2026-12-04', hora: '17:00', titulo: 'Exemplo: encontro de dezembro', quem: 'A definir', local: 'Auditório' }
+      ]
+    },
+    acessos: [
+      { email: 'sergio@exemplo.com', nome: 'Sérgio', papel: 'Administrador' }
+    ]
+  };
+}
+
+/* =====================================================================
+   ESTADO, GRAVAÇÃO E LOGIN
+   ===================================================================== */
+const ARMAZEM = 'estudio:demo:v1';
+let DADOS = null, SALVO = '', USUARIO = null, ABA = 'inicio', SEL_EMP = 'EDIFICA', SEL_EMPR = 'BE01';
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const clone = o => JSON.parse(JSON.stringify(o));
+const sujo = () => JSON.stringify(DADOS) !== SALVO;
+
+let _fb = null;
+async function firebase() {
+  if (_fb) return _fb;
+  const v = '10.12.2';
+  const app = (await import(`https://www.gstatic.com/firebasejs/${v}/firebase-app.js`)).initializeApp(CONFIG.firebase);
+  const fs = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-firestore.js`);
+  const au = await import(`https://www.gstatic.com/firebasejs/${v}/firebase-auth.js`);
+  _fb = { fs, au, db: fs.getFirestore(app), auth: au.getAuth(app) };
+  return _fb;
+}
+async function carregar() {
+  if (CONFIG.fonte === 'demo') {
+    try { const s = localStorage.getItem(ARMAZEM); if (s) return JSON.parse(s); } catch (e) {}
+    return CONTEUDO_INICIAL();
+  }
+  const { fs, db } = await firebase();
+  const base = CONTEUDO_INICIAL(), out = {};
+  for (const k of Object.keys(base)) {
+    const snap = await fs.getDoc(fs.doc(db, CONFIG.colecao, k));
+    out[k] = snap.exists() ? snap.data().v : base[k];
+  }
+  return out;
+}
+async function gravar() {
+  if (CONFIG.fonte === 'demo') { try { localStorage.setItem(ARMAZEM, JSON.stringify(DADOS)); } catch (e) {} return; }
+  const { fs, db } = await firebase();
+  const antes = JSON.parse(SALVO);
+  for (const k of Object.keys(DADOS)) {
+    if (JSON.stringify(DADOS[k]) === JSON.stringify(antes[k])) continue;
+    await fs.setDoc(fs.doc(db, CONFIG.colecao, k), { v: DADOS[k], em: fs.serverTimestamp(), por: USUARIO.email });
+  }
+}
+async function entrar(ev) {
+  ev.preventDefault();
+  const email = $('#l-email').value.trim(), senha = $('#l-senha').value;
+  const erro = $('#l-erro'); erro.textContent = '';
+  try {
+    if (CONFIG.fonte === 'demo') USUARIO = { email: email || 'demonstracao@dbvo' };
+    else { const { au, auth } = await firebase(); USUARIO = (await au.signInWithEmailAndPassword(auth, email, senha)).user; }
+    DADOS = await carregar(); SALVO = JSON.stringify(DADOS);
+    desenhar();
+  } catch (e) { erro.textContent = 'Não foi possível entrar. Confira o e-mail e a senha.'; }
+}
+async function salvar() {
+  const b = $('#b-salvar'); b.disabled = true; b.textContent = 'Salvando…';
+  try { await gravar(); SALVO = JSON.stringify(DADOS); aviso('Salvo. As páginas mostram a mudança na próxima atualização.'); }
+  catch (e) { aviso('Não foi possível salvar. Tente de novo.'); }
+  atualizarEstado();
+}
+function desfazer() { DADOS = JSON.parse(SALVO); desenhar(); aviso('Alterações descartadas'); }
+function sair() {
+  if (sujo() && !window.confirm('Há alterações não salvas. Sair mesmo assim?')) return;
+  USUARIO = null; if (CONFIG.fonte !== 'demo' && _fb) _fb.au.signOut(_fb.auth); telaLogin();
+}
+function aviso(t) { const el = $('#toast'); el.textContent = t; el.classList.add('on'); clearTimeout(aviso._t); aviso._t = setTimeout(() => el.classList.remove('on'), 2600); }
+function atualizarEstado() {
+  const s = sujo(), e = $('#estado'), b = $('#b-salvar'), d = $('#b-desfazer');
+  if (!e) return;
+  e.classList.toggle('sujo', s);
+  e.querySelector('span').textContent = s ? 'Alterações não salvas' : 'Tudo salvo';
+  b.disabled = !s; b.textContent = 'Salvar'; d.hidden = !s;
+}
+window.addEventListener('beforeunload', e => { if (USUARIO && sujo()) { e.preventDefault(); e.returnValue = ''; } });
+
+/* Caminho "a.b.0.c" → leitura e escrita no objeto DADOS */
+function pegar(c) { return c.split('.').reduce((o, k) => o == null ? o : o[k], DADOS); }
+function por(c, v) { const p = c.split('.'), u = p.pop(); const o = p.reduce((o, k) => o[k], DADOS); o[u] = v; atualizarEstado(); }
+
+/* =====================================================================
+   COMPONENTES
+   ===================================================================== */
+function cabecalho() {
+  return `<header class="hz"><div class="hz-pat"></div><div class="hz-brilho"></div>
+    <div class="hz-topo">
+      <div style="min-width:0"><div class="hz-eb">SharePoint do Grupo DBVO</div><div class="hz-nome">Estúdio</div></div>
+      <div class="hz-dir">
+        <div class="estado" id="estado"><i class="ponto"></i><span>Tudo salvo</span></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn claro" id="b-desfazer" onclick="desfazer()" hidden>Descartar</button>
+          <button class="btn branco" id="b-salvar" onclick="salvar()" disabled>Salvar</button>
+          <button class="btn claro" onclick="sair()">Sair</button>
+        </div>
+        <div class="hz-user el">${esc(USUARIO.email)}${CONFIG.fonte === 'demo' ? ' · Demonstração' : ''}</div>
+      </div>
+    </div></header>`;
+}
+const ABAS = [
+  ['inicio', 'Página inicial'], ['empresas', 'Empresas'], ['times', 'Times'],
+  ['empreendimentos', 'Empreendimentos'], ['inside', 'Inside'], ['manual', 'Como funciona'], ['acessos', 'Acessos']
+];
+function nav() {
+  return `<nav class="nav"><div class="grupo-btn">${ABAS.map(([k, t]) =>
+    `<button class="btn ${ABA === k ? 'on' : ''}" onclick="irPara('${k}')">${t}</button>`).join('')}</div></nav>`;
+}
+function irPara(k) { ABA = k; desenhar(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+function campo(rot, c, o = {}) {
+  const v = pegar(c) ?? '';
+  const cls = `campo ${o.l || ''}`;
+  const dica = o.dica ? `<span class="dica">${esc(o.dica)}</span>` : '';
+  const ev = `oninput="por('${c}', ${o.num ? 'this.value===\'\'?\'\':Number(this.value)' : 'this.value'})"`;
+  if (o.area) return `<label class="${cls}"><span>${esc(rot)}</span><textarea rows="${o.area}" ${ev} placeholder="${esc(o.ph || '')}">${esc(v)}</textarea>${dica}</label>`;
+  if (o.opcoes) return `<label class="${cls}"><span>${esc(rot)}</span><select onchange="por('${c}', this.value)">${o.opcoes.map(([k, t]) => `<option value="${esc(k)}" ${k === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>${dica}</label>`;
+  return `<label class="${cls}"><span>${esc(rot)}</span><input type="${o.tipo || 'text'}" value="${esc(v)}" ${ev} placeholder="${esc(o.ph || '')}" ${o.max ? `maxlength="${o.max}"` : ''}>${dica}</label>`;
+}
+function interruptor(rot, sub, c) {
+  const on = !!pegar(c);
+  return `<div class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" tabindex="0" onclick="por('${c}', !pegar('${c}')); this.classList.toggle('on')">
+    <div class="tx"><b>${esc(rot)}</b><small>${esc(sub)}</small></div><i></i></div>`;
+}
+function bloco(tit, sub, corpo, o = {}) {
+  return `<section class="bloco ${o.largo ? 'largo' : ''}"><div class="bloco-cab"><div class="bloco-tit">${esc(tit)}${sub ? `<div class="bloco-sub">${esc(sub)}</div>` : ''}</div>${o.acao || ''}</div>${corpo}</section>`;
+}
+
+/* Lista editável genérica: cada item é um conjunto de campos */
+function lista(c, campos, novo, vazio) {
+  const arr = pegar(c) || [];
+  const itens = arr.map((_, i) => `<div class="item">
+      <div class="campos">${campos.map(f => f.chk
+        ? `<label class="chk campo"><span>&nbsp;</span><span style="display:flex;gap:8px;align-items:center;text-transform:none;letter-spacing:0;font-size:12px;color:var(--preto)"><input type="checkbox" ${pegar(`${c}.${i}.${f.k}`) ? 'checked' : ''} onchange="por('${c}.${i}.${f.k}', this.checked)">${esc(f.r)}</span></label>`
+        : campo(f.r, `${c}.${i}.${f.k}`, f)).join('')}</div>
+      <div class="item-acoes">
+        <button class="ic" title="Subir" ${i === 0 ? 'disabled' : ''} onclick="mover('${c}',${i},-1)">↑</button>
+        <button class="ic" title="Descer" ${i === arr.length - 1 ? 'disabled' : ''} onclick="mover('${c}',${i},1)">↓</button>
+        <button class="ic x" title="Remover" onclick="remover('${c}',${i})">×</button>
+      </div></div>`).join('');
+  return `<div class="lista">${itens || `<div class="vazio">${esc(vazio || 'Nenhum item ainda.')}</div>`}</div>
+    <button class="btn add" onclick='adicionar("${c}", ${JSON.stringify(novo)})'>+ Adicionar</button>`;
+}
+function mover(c, i, d) { const a = pegar(c); [a[i], a[i + d]] = [a[i + d], a[i]]; atualizarEstado(); desenhar(); }
+function remover(c, i) { pegar(c).splice(i, 1); atualizarEstado(); desenhar(); }
+function adicionar(c, novo) { pegar(c).push(clone(novo)); atualizarEstado(); desenhar(); }
+
+function seletorCor(c) {
+  const v = pegar(c);
+  return `<div class="campo"><span>Cor de destaque</span><div class="paletas">${PALETAS.map(p => `<div class="paleta"><small class="el">${esc(p.nome)}</small><div class="cores">${p.cores.map(cor =>
+    `<button class="cor ${cor === v ? 'on' : ''}" style="background:${cor}" title="${cor}" onclick="por('${c}','${cor}'); desenhar()"></button>`).join('')}</div></div>`).join('')}</div>
+    <span class="dica">Só cores do manual de marcas.</span></div>`;
+}
+
+/* Fotos: reduz no navegador e guarda como JPEG (dispensa o Firebase Storage) */
+function escolherFoto(cb) {
+  const inp = $('#arquivo'); inp.value = '';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    const img = await new Promise((ok, erro) => { const i = new Image(); i.onload = () => ok(i); i.onerror = erro; i.src = URL.createObjectURL(f); });
+    const k = Math.min(1, CONFIG.foto.lado / Math.max(img.width, img.height));
+    const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+    cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+    const url = cv.toDataURL('image/jpeg', CONFIG.foto.qualidade);
+    if (url.length > 900000) { aviso('Foto grande demais mesmo reduzida. Use outra.'); return; }
+    cb(url); atualizarEstado(); desenhar();
+  };
+  inp.click();
+}
+
+/* =====================================================================
+   ABAS
+   ===================================================================== */
+function abaInicio() {
+  const p = 'portal';
+  return `<div class="secao">Página inicial do SharePoint</div>
+  <div class="blocos">
+    ${bloco('Seções visíveis', 'Ligue quando o conteúdo estiver pronto', `<div class="sws">
+      ${interruptor('Central de ferramentas', 'Links das ferramentas do grupo', `${p}.exibir.ferramentas`)}
+      ${interruptor('Mural', 'Avisos, aniversariantes e agenda', `${p}.exibir.mural`)}</div>`)}
+    ${bloco('Missão e propósito', '', `<div class="campos">
+      ${campo('Missão', `${p}.missao`, { area: 2, l: 'lt' })}
+      ${campo('Propósito', `${p}.proposito`, { area: 2, l: 'lt' })}</div>`)}
+    ${bloco('O grupo em números', 'Aparecem em contagem animada', lista(`${p}.numeros`, [
+      { k: 'prefixo', r: 'Antes', ph: 'Ex.: +R$' }, { k: 'valor', r: 'Número', tipo: 'number', num: true },
+      { k: 'sufixo', r: 'Depois', ph: 'Ex.: mi' }, { k: 'rotulo', r: 'Legenda', l: 'l2', max: 40 }
+    ], { prefixo: '', valor: 0, sufixo: '', rotulo: '' }), { largo: true })}
+    ${bloco('Valores', 'Aparecem na página inicial e nas páginas das empresas', valoresEd(`${p}.valores`))}
+    ${bloco('Vídeo', '', `<div class="campos">${campo('Título', `${p}.video.titulo`)}${campo('Código do YouTube', `${p}.video.youtube`, { dica: 'O que vem depois de "v=" no link' })}</div>`)}
+    ${bloco('Momentos', 'Fotos de cultura da faixa "Momentos". Prefira fotos deitadas.', momentosEd(), { largo: true })}
+    ${bloco('Avisos', 'Mural · o mais recente aparece primeiro', lista(`${p}.avisos`, [
+      { k: 'titulo', r: 'Título', l: 'l2', max: 80 }, { k: 'data', r: 'Data', tipo: 'date' }, { k: 'categoria', r: 'Categoria', max: 24 },
+      { k: 'texto', r: 'Texto', area: 2, l: 'lt' }, { k: 'link', r: 'Link (opcional)', l: 'lt' }
+    ], { titulo: '', data: '', categoria: 'Comunicado', texto: '', link: '' }), { largo: true })}
+    ${bloco('Aniversariantes', 'Com e-mail aparece o botão de parabéns pelo Teams', lista(`${p}.aniversariantes`, [
+      { k: 'nome', r: 'Nome', l: 'l2' }, { k: 'setor', r: 'Setor' }, { k: 'dia', r: 'Dia', tipo: 'number', num: true },
+      { k: 'mes', r: 'Mês', tipo: 'number', num: true }, { k: 'email', r: 'E-mail (opcional)', tipo: 'email', l: 'l2' }
+    ], { nome: '', setor: '', dia: '', mes: '', email: '' }))}
+    ${bloco('Agenda', '', lista(`${p}.agenda`, [
+      { k: 'titulo', r: 'Evento', l: 'l2' }, { k: 'data', r: 'Data', tipo: 'date' }, { k: 'hora', r: 'Hora', tipo: 'time' }, { k: 'local', r: 'Local' }
+    ], { titulo: '', data: '', hora: '', local: '' }))}
+    ${bloco('Central de ferramentas', '', lista(`${p}.ferramentas`, [
+      { k: 'nome', r: 'Nome' }, { k: 'area', r: 'Área' }, { k: 'texto', r: 'Descrição', l: 'l2' },
+      { k: 'link', r: 'Link', l: 'l2' }, { k: 'restrito', r: 'Pede login (mostra o cadeado)', chk: true }
+    ], { nome: '', area: '', texto: '', link: '', restrito: false }), { largo: true })}
+  </div>`;
+}
+function valoresEd(c) {
+  const arr = pegar(c);
+  return `<div class="tags">${arr.map((v, i) => `<span class="tag"><span>${esc(v)}</span><button title="Remover" onclick="remover('${c}',${i})">×</button></span>`).join('')}</div>
+    <form class="tag-nova" onsubmit="event.preventDefault(); const t=this.v.value.trim(); if(t){ pegar('${c}').push(t[0].toUpperCase()+t.slice(1)); atualizarEstado(); desenhar(); }">
+      <input name="v" placeholder="Novo valor" maxlength="40"><button class="btn">+ Adicionar</button></form>`;
+}
+function momentosEd() {
+  const arr = DADOS.momentos;
+  return `<div class="fotos">${arr.map((m, i) => `<div class="foto">
+      <div class="foto-img" style="background-image:url('${m.foto}')"><button class="ic x" title="Remover" onclick="remover('momentos',${i})">×</button></div>
+      <input value="${esc(m.legenda)}" placeholder="Legenda" maxlength="60" oninput="por('momentos.${i}.legenda', this.value)"></div>`).join('')}
+    <button class="foto-nova" onclick="escolherFoto(u => DADOS.momentos.push({ foto: u, legenda: '' }))"><b>+</b>Adicionar foto</button></div>`;
+}
+
+function abaEmpresas() {
+  const ks = Object.keys(DADOS.empresas), e = DADOS.empresas[SEL_EMP], c = `empresas.${SEL_EMP}`;
+  const times = DADOS.times.filter(t => t.empresa === SEL_EMP).map(t => t.nome);
+  return `<div class="secao">Empresas do grupo</div>
+  <div class="duas">
+    <div class="escolha">${ks.map(k => { const x = DADOS.empresas[k]; return `<button class="op ${k === SEL_EMP ? 'on' : ''}" onclick="SEL_EMP='${k}'; desenhar()">
+      <i class="bol" style="background:${x.cor}"></i><span class="el"><b class="el">${esc(x.nome)}${x.sub ? ' ' + esc(x.sub) : ''}</b><small class="el">${esc(x.rotulo)}</small></span></button>`; }).join('')}</div>
+    <div class="blocos anima" style="grid-template-columns:1fr">
+      <div class="previa"><div class="previa-rot">Prévia do cabeçalho</div>
+        <div class="hz" style="--marca:${e.cor}"><div class="hz-pat"></div><div class="hz-brilho"></div>
+          <div class="hz-topo"><div style="min-width:0"><div class="hz-eb">${esc(e.rotulo)}</div><div class="hz-nome el">${esc(e.nome)}${e.sub ? ` <span style="font-weight:400;font-size:.4em;letter-spacing:.3em;vertical-align:middle">${esc(e.sub)}</span>` : ''}</div></div>
+          <a class="btn claro" href="${CONFIG.baseOkrs}?empresa=${SEL_EMP}" target="_blank" rel="noopener">Ver página ↗</a></div></div></div>
+      ${bloco('Identificação', '', `<div class="campos">
+        ${campo('Nome', `${c}.nome`, { max: 30 })}${campo('Complemento', `${c}.sub`, { max: 30, ph: 'Ex.: Engenharia' })}
+        ${campo('Rótulo acima do nome', `${c}.rotulo`, { l: 'l2', max: 40 })}</div><div style="margin-top:12px">${seletorCor(`${c}.cor`)}</div>`)}
+      ${bloco('Quem somos', '', `<div class="campos">${campo(SEL_EMP === 'DBVO' ? 'Missão' : 'Missão', `${c}.missao`, { area: 3, l: 'lt' })}${campo(SEL_EMP === 'DBVO' ? 'Propósito' : 'Visão', `${c}.visao`, { area: 3, l: 'lt' })}</div>`)}
+      ${bloco('Times desta empresa', times.length ? '' : 'Nenhum time ligado a esta empresa', times.length
+        ? `<div class="tags">${times.map(t => `<span class="tag" style="padding-right:12px"><span>${esc(t)}</span></span>`).join('')}</div>` : '',
+        { acao: `<button class="btn mini" onclick="irPara('times')">Editar times →</button>` })}
+    </div>
+  </div>`;
+}
+
+function abaTimes() {
+  const emp = Object.keys(DADOS.empresas).map(k => [k, `${DADOS.empresas[k].nome}${DADOS.empresas[k].sub ? ' ' + DADOS.empresas[k].sub : ''}`]);
+  const okr = PAINEIS_OKR.map(k => [k, k]);
+  const op = (arr, v) => arr.map(([k, t]) => `<option value="${esc(k)}" ${k === v ? 'selected' : ''}>${esc(t)}</option>`).join('');
+  return `<div class="secao">Times</div>
+  <p class="intro">Cada time tem uma página no SharePoint. Aqui você define a qual empresa ele pertence e qual painel de OKRs ele mostra. O código é o que vai no link do iframe (<b>?time=CÓDIGO</b>) e não deve mudar depois de publicado.</p>
+  <div class="bloco" style="margin-top:12px">
+    <table class="tab"><thead><tr><th>Código</th><th>Nome</th><th>Empresa</th><th>OKR que mostra</th><th>Página no SharePoint</th><th></th></tr></thead><tbody>
+    ${DADOS.times.map((t, i) => `<tr>
+      <td data-r="Código"><input value="${esc(t.chave)}" oninput="por('times.${i}.chave', this.value.toUpperCase().replace(/[^A-Z0-9+]/g,''))" maxlength="16"></td>
+      <td data-r="Nome"><input value="${esc(t.nome)}" oninput="por('times.${i}.nome', this.value)" maxlength="24"></td>
+      <td data-r="Empresa"><select onchange="por('times.${i}.empresa', this.value)">${op(emp, t.empresa)}</select></td>
+      <td data-r="OKR que mostra"><select onchange="por('times.${i}.okr', this.value)">${op(okr, t.okr)}</select></td>
+      <td data-r="Página no SharePoint"><input value="${esc(t.link)}" oninput="por('times.${i}.link', this.value)"></td>
+      <td class="ac"><button class="ic x" title="Remover" onclick="remover('times',${i})">×</button></td></tr>`).join('')}
+    </tbody></table>
+    <button class="btn add" onclick='adicionar("times", {"chave":"","nome":"","empresa":"HUB","okr":"GERAL","link":""})'>+ Adicionar time</button>
+  </div>`;
+}
+
+function abaEmpreendimentos() {
+  const ks = Object.keys(DADOS.empreendimentos), e = DADOS.empreendimentos[SEL_EMPR], c = `empreendimentos.${SEL_EMPR}`;
+  return `<div class="secao">Empreendimentos da BE</div>
+  <div class="duas">
+    <div class="escolha">${ks.map(k => { const x = DADOS.empreendimentos[k]; return `<button class="op ${k === SEL_EMPR ? 'on' : ''}" onclick="SEL_EMPR='${k}'; desenhar()">
+      <i class="bol" style="background:${x.paleta}"></i><span class="el"><b class="el">${esc(x.nome)}</b><small class="el">${esc(x.codigo)}</small></span></button>`; }).join('')}
+      <button class="op" onclick="novoEmpreendimento()"><i class="bol" style="background:transparent;box-shadow:0 0 0 1px var(--cinza-escuro)"></i><span><b>+ Novo</b><small>Empreendimento</small></span></button></div>
+    <div class="blocos anima" style="grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr))">
+      <div class="previa" style="grid-column:1/-1"><div class="previa-rot">Prévia do cabeçalho</div>
+        <div class="hz" style="--marca:${e.paleta}"><div class="hz-pat"></div><div class="hz-brilho"></div>
+          <div class="hz-topo"><div style="min-width:0"><div class="hz-eb">Empreendimento BE</div><div class="hz-nome el">${esc(e.nome)}</div></div>
+          <a class="btn claro" href="${CONFIG.baseOkrs}?empreendimento=${SEL_EMPR}" target="_blank" rel="noopener">Ver página ↗</a></div></div></div>
+      ${bloco('Dados', '', `<div class="campos">${campo('Nome', `${c}.nome`, { max: 30 })}${campo('Código', `${c}.codigo`, { max: 8 })}
+        ${campo('Página no SharePoint', `${c}.link`, { l: 'lt' })}</div><div style="margin-top:12px">${seletorCor(`${c}.paleta`)}</div>`)}
+      ${bloco('Foto do card', 'Aparece na página da BE. Use a foto do empreendimento pronto.', `
+        <div class="ft-emp" style="--p:${e.foto ? `url('${e.foto}')` : e.paleta}">${e.foto ? '' : ''}</div>
+        <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap">
+          <button class="btn" onclick="escolherFoto(u => DADOS.empreendimentos['${SEL_EMPR}'].foto = u)">${e.foto ? 'Trocar foto' : 'Enviar foto'}</button>
+          ${e.foto ? `<button class="btn perigo" onclick="por('${c}.foto',''); desenhar()">Tirar foto</button>` : ''}</div>`)}
+    </div>
+  </div>`;
+}
+function novoEmpreendimento() {
+  let n = 1; while (DADOS.empreendimentos['NOVO' + n]) n++;
+  const k = 'NOVO' + n;
+  DADOS.empreendimentos[k] = { codigo: 'BE', nome: 'Novo empreendimento', paleta: '#C8C8C8', foto: '', link: '' };
+  SEL_EMPR = k; atualizarEstado(); desenhar();
+}
+
+function abaInside() {
+  return `<div class="secao">Inside · encontros de inovação</div>
+  <div class="blocos">
+    ${bloco('Sobre o Inside', 'Texto curto que aparece no cabeçalho da página', `<div class="campos">
+      ${campo('Missão', 'empresas.INSIDE.missao', { area: 2, l: 'lt' })}${campo('Visão', 'empresas.INSIDE.visao', { area: 2, l: 'lt' })}
+      ${campo('Tema do ciclo', 'inside.tema', { l: 'lt', ph: 'Ex.: IA no dia a dia da obra' })}</div>`)}
+    ${bloco('Cronograma', 'Os encontros já passados ficam marcados como realizados', lista('inside.encontros', [
+      { k: 'data', r: 'Data', tipo: 'date' }, { k: 'hora', r: 'Hora', tipo: 'time' }, { k: 'titulo', r: 'Tema do encontro', l: 'l2' },
+      { k: 'quem', r: 'Quem apresenta' }, { k: 'local', r: 'Local' }
+    ], { data: '', hora: '17:00', titulo: '', quem: '', local: '' }, 'Nenhum encontro marcado.'), { largo: true })}
+  </div>`;
+}
+
+function abaAcessos() {
+  return `<div class="secao">Quem pode editar</div>
+  <p class="intro">Só quem está nesta lista consegue entrar aqui e salvar. As páginas do SharePoint continuam abertas para leitura. Cada pessoa entra com o próprio e-mail e uma senha criada no primeiro acesso.</p>
+  <div class="blocos" style="margin-top:12px">
+    ${bloco('Editores', '', lista('acessos', [
+      { k: 'nome', r: 'Nome' }, { k: 'email', r: 'E-mail', tipo: 'email', l: 'l2' },
+      { k: 'papel', r: 'Papel', opcoes: [['Administrador', 'Administrador'], ['Editor', 'Editor']] }
+    ], { nome: '', email: '', papel: 'Editor' }), { largo: true })}
+    ${bloco('O que cada papel faz', '', `<div class="mapa">
+      <div class="caixa escura"><b>Administrador</b><span>Edita tudo, inclusive esta lista de acessos.</span></div>
+      <div class="caixa"><b>Editor</b><span>Edita o conteúdo das páginas. Não mexe em acessos.</span></div></div>`, { largo: true })}
+  </div>`;
+}
+
+/* Iframes em uso (para copiar e colar) */
+function iframes() {
+  const k = '&chave=SUA_CHAVE';
+  const o = CONFIG.baseOkrs, p = CONFIG.basePortal;
+  return [
+    ['Página inicial', [
+      ['Topo e empresas', `${p}?secao=topo,empresas`, 1060], ['Painel de OKRs', `${o}?pagina=GERAL${k}`, 900],
+      ['Em construção', `${p}?secao=obras`, 560], ['Grupo em números', `${p}?secao=numeros`, 420],
+      ['Cultura', `${p}?secao=cultura`, 640], ['Vídeo e redes', `${p}?secao=video,redes`, 1040]]],
+    ['Empresas', Object.keys(DADOS.empresas).map(e => [DADOS.empresas[e].nome + (DADOS.empresas[e].sub ? ' ' + DADOS.empresas[e].sub : ''), `${o}?empresa=${e}${k}`,
+      { BE: 960, DBVO: 560, ENGINE: 260, INSIDE: 260 }[e] || 640])],
+    ['Times', DADOS.times.map(t => [t.nome, `${o}?time=${t.chave}${k}`, t.chave === 'ENGO' ? 1300 : t.chave === 'INCORPORACAO' ? 900 : 1000])],
+    ['Empreendimentos', Object.keys(DADOS.empreendimentos).map(e => [DADOS.empreendimentos[e].nome, `${o}?empreendimento=${e}${k}`, 170])]
+  ];
+}
+function copiar(url, alt) {
+  const html = `<iframe src="${url}" width="100%" height="${alt}" style="border:0"></iframe>`;
+  (navigator.clipboard ? navigator.clipboard.writeText(html) : Promise.reject()).then(() => aviso('Código do iframe copiado'), () => aviso('Não foi possível copiar'));
+}
+function abaManual() {
+  return `<div class="secao">Como funciona</div>
+  <p class="intro">O SharePoint não roda páginas próprias. Cada parte bonita que você vê lá é uma página publicada no GitHub e colocada dentro do SharePoint por um iframe (web part "Inserir"). O conteúdo dessas páginas vem do Estúdio.</p>
+  <div class="blocos" style="margin-top:12px">
+    ${bloco('De onde vem cada coisa', '', `<div class="mapa">
+      <div class="caixa escura"><b>Estúdio</b><span>Você edita textos, fotos, cores e times aqui.</span></div>
+      <div class="caixa"><b>Banco de conteúdo</b><span>Firebase okrs-sharepoint. Guarda o que foi salvo aqui.</span></div>
+      <div class="caixa"><b>Páginas</b><span>portal-dbvo e okrs-sharepoint, no GitHub Pages. Leem o banco.</span></div>
+      <div class="caixa"><b>SharePoint</b><span>Mostra as páginas por iframe, cada uma com altura fixa.</span></div>
+      <div class="caixa"><b>App de OKRs</b><span>Os times lançam lá. O painel lê direto, sem cópia.</span></div>
+      <div class="caixa"><b>Comitê de Incorporação</b><span>Fotos do mês das obras, puxadas sozinhas.</span></div></div>`, { largo: true })}
+    ${bloco('Passo a passo', '', `<div class="passos">
+      <details class="passo"><summary>Criar a página de um time novo</summary><ol>
+        <li>Na aba Times, clique em "+ Adicionar time", preencha código, nome, empresa e OKR, e salve.</li>
+        <li>No SharePoint, crie a página do time e adicione a web part "Inserir".</li>
+        <li>Volte aqui, copie o iframe do time na lista abaixo e cole na web part.</li>
+        <li>Ajuste a altura: se aparecer rolagem, aumente de 50 em 50; se sobrar branco, diminua.</li></ol></details>
+      <details class="passo"><summary>Liberar o domínio num site novo</summary><ol>
+        <li>No site do SharePoint, abra Configurações do site → Segurança do Campo HTML.</li>
+        <li>Adicione <b>pdedbvo.github.io</b> e salve. No site raiz pode ser preciso pedir a um administrador do Microsoft 365.</li></ol></details>
+      <details class="passo"><summary>Trocar a chave dos iframes</summary><ol>
+        <li>Gere uma chave nova e calcule o SHA-256 dela.</li>
+        <li>Troque <b>chaveHash</b> no CONFIG do okrs-sharepoint (nunca a chave em si, o repositório é público).</li>
+        <li>Atualize o final <b>&amp;chave=</b> de todos os iframes do SharePoint.</li></ol></details>
+      <details class="passo"><summary>De onde vêm os números dos OKRs</summary><p>O painel lê o mesmo banco do app de OKRs e faz as mesmas contas do app: o % de cada resultado chave é realizado ÷ meta (ou o inverso quando menor é melhor), o % do objetivo e da pessoa é a média ponderada pelo peso, e resultado sem lançamento conta como 0%. Os dados ficam guardados por até 24 h no navegador; o botão "Atualizar" busca de novo.</p></details>
+      <details class="passo"><summary>Quando a mudança aparece no SharePoint</summary><p>Ao salvar aqui, o conteúdo muda na hora no banco. As páginas leem de novo na próxima vez que alguém abrir (ou no botão "Atualizar"). Se não aparecer, use Ctrl+F5.</p></details>
+    </div>`, { largo: true })}
+    ${bloco('Iframes em uso', 'Copie e cole na web part "Inserir". Troque SUA_CHAVE pela chave de acesso.', iframes().map(([g, l]) => `
+      <div class="previa-rot" style="margin:12px 0 6px">${esc(g)}</div><div class="lista">${l.map(([n, u, a]) => `
+        <div class="ifr"><div style="min-width:0"><b class="el">${esc(n)}</b><code>${esc(u)}</code><span class="alt">Altura sugerida: ${a}</span></div>
+        <button class="btn mini" onclick="copiar('${esc(u)}', ${a})">Copiar</button></div>`).join('')}</div>`).join(''), { largo: true })}
+  </div>`;
+}
+
+/* =====================================================================
+   DESENHO
+   ===================================================================== */
+function telaLogin() {
+  $('#raiz').innerHTML = `<div class="login anima">
+    <header class="hz"><div class="hz-pat"></div><div class="hz-brilho"></div>
+      <div class="hz-topo"><div><div class="hz-eb">SharePoint do Grupo DBVO</div><div class="hz-nome">Estúdio</div></div></div></header>
+    <form class="bloco" onsubmit="entrar(event)">
+      <label class="campo"><span>E-mail</span><input id="l-email" type="email" autocomplete="username" ${CONFIG.fonte === 'demo' ? '' : 'required'}></label>
+      <label class="campo"><span>Senha</span><input id="l-senha" type="password" autocomplete="current-password" ${CONFIG.fonte === 'demo' ? '' : 'required'}></label>
+      <button class="btn cheio">Entrar</button><div class="erro" id="l-erro"></div>
+    </form>
+    ${CONFIG.fonte === 'demo' ? '<div class="demo-aviso">Modo demonstração: entre sem senha. As alterações ficam só neste navegador.</div>' : ''}
+  </div>`;
+}
+function desenhar() {
+  if (!USUARIO) return telaLogin();
+  const corpo = { inicio: abaInicio, empresas: abaEmpresas, times: abaTimes, empreendimentos: abaEmpreendimentos, inside: abaInside, manual: abaManual, acessos: abaAcessos }[ABA]();
+  $('#raiz').innerHTML = `${cabecalho()}${nav()}<main class="anima">${corpo}</main>
+    <div class="rodape"><span>Estúdio · SharePoint DBVO</span><span>${CONFIG.fonte === 'demo' ? 'Demonstração · dados locais' : 'Conectado ao banco okrs-sharepoint'}</span></div>`;
+  atualizarEstado();
+}
+
+(function iniciar() {
+  const q = new URLSearchParams(location.search);
+  if (q.get('aba') && ABAS.some(a => a[0] === q.get('aba'))) ABA = q.get('aba');
+  if (q.has('empresa')) SEL_EMP = q.get('empresa');
+  if (q.has('demo-entrar') && CONFIG.fonte === 'demo') { USUARIO = { email: 'sergio@exemplo.com' }; DADOS = CONTEUDO_INICIAL(); SALVO = JSON.stringify(DADOS); return desenhar(); }
+  telaLogin();
+})();
+</script>
+</body>
+</html>
