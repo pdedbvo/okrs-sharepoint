@@ -472,8 +472,75 @@ function converterPeriodo(per, dbData) {
   // BHAG = bloco do topo sem responsável (ex.: "Estratégia Global"). Fica como indicador, não como pessoa.
   const topoSemResp = todas.find(x => !x.personId && !x.pai && !x.id.startsWith('a:'));
   const bhag = topoSemResp ? { titulo: topoSemResp.okrs[0] ? (topoSemResp.okrs[0].titulo) : topoSemResp.nome, pct: topoSemResp.pct } : null;
-  const pessoas = todas.filter(x => x !== topoSemResp).map(x => ({ ...x, pai: x.pai === (topoSemResp && topoSemResp.id) ? '' : x.pai }));
-  return { trimestre: chaveTri(per), bhag, pessoas };
+  const app = mediasDoApp(nodes, dbData);
+  const pessoas = todas.filter(x => x !== topoSemResp).map(x => ({ ...x, pai: x.pai === (topoSemResp && topoSemResp.id) ? '' : x.pai,
+    pctEquipe: x.personId && app.equipe.has(x.personId) ? app.equipe.get(x.personId) : null }));
+  return { trimestre: chaveTri(per), bhag, pessoas, geral: app.geral };
+}
+
+/* Mesmos números da aba "Painel" do app (cópia fiel de buildModel, visão "Por Head"):
+   • geral  = "Desempenho geral": média ponderada (pelo peso) de todas as metas do trimestre;
+   • equipe = "média ponderada da equipe" de cada pessoa: metas dela + de todos os liderados
+     (diretos e indiretos) + de tudo abaixo das MFs (blocos da 3ª linha) que ela lidera. */
+function mediasDoApp(nodes, dbData) {
+  const byId = new Map(nodes.map(n => [n.id, n]));
+  const parentOf = n => (n && n.parent && n.parent !== n.id && byId.has(n.parent)) ? n.parent : null;
+  const depth = new Map();
+  nodes.forEach(n => {
+    let d = 0, cur = n; const seen = new Set([n.id]);
+    while (parentOf(cur)) { const p = byId.get(parentOf(cur)); if (seen.has(p.id)) break; seen.add(p.id); d++; cur = p; }
+    depth.set(n.id, d);
+  });
+  const kids = new Map();
+  nodes.forEach(n => { const p = parentOf(n); if (p) { if (!kids.has(p)) kids.set(p, []); kids.get(p).push(n.id); } });
+  const dfs = [], vis = new Set();
+  const walk = id => { if (vis.has(id)) return; vis.add(id); dfs.push(byId.get(id)); (kids.get(id) || []).forEach(walk); };
+  nodes.filter(n => !parentOf(n)).forEach(n => walk(n.id));
+  nodes.forEach(n => walk(n.id));
+  const subtree = id => { const s = new Set([id]), st = [id]; while (st.length) { const c = st.pop(); (kids.get(c) || []).forEach(k => { if (!s.has(k)) { s.add(k); st.push(k); } }); } return s; };
+  const rows = [], rowsByNode = new Map();
+  dfs.forEach(n => {
+    const cl = Array.isArray(n.checklist) ? n.checklist : [];
+    if (!n.responsible && cl.filter(Boolean).length === 0) return;
+    cl.forEach((a, i) => {
+      if (!a) return;
+      const r = { key: n.id + '::' + (a.id || i), pct: activityPct(a), peso: parseFloat(a.peso) || 0 };
+      rows.push(r); if (!rowsByNode.has(n.id)) rowsByNode.set(n.id, []); rowsByNode.get(n.id).push(r);
+    });
+  });
+  const rowsOf = ids => { const out = []; ids.forEach(id => (rowsByNode.get(id) || []).forEach(r => out.push(r))); return out; };
+  const personNodes = new Map();
+  nodes.forEach(n => { if (n.responsible) { if (!personNodes.has(n.responsible)) personNodes.set(n.responsible, []); personNodes.get(n.responsible).push(n); } });
+  const pInfo = new Map();
+  personNodes.forEach((ns, pid) => {
+    const top = ns.slice().sort((a, b) => depth.get(a.id) - depth.get(b.id))[0];
+    let leaderId = '', cur = top; const seen = new Set();
+    while (parentOf(cur) && !seen.has(cur.id)) {
+      seen.add(cur.id); cur = byId.get(parentOf(cur));
+      if (cur.responsible && cur.responsible !== pid) { leaderId = cur.responsible; break; }
+    }
+    pInfo.set(pid, { ownRows: rowsOf(new Set(ns.map(n => n.id))), leaderId, subIds: [] });
+  });
+  pInfo.forEach((inf, pid) => { if (inf.leaderId && pInfo.has(inf.leaderId)) pInfo.get(inf.leaderId).subIds.push(pid); });
+  const mfs = nodes.filter(n => depth.get(n.id) === 2).map(n => ({ node: n, rows: rowsOf(subtree(n.id)) }));
+  const equipe = new Map();
+  pInfo.forEach((info, id) => {
+    const all = [], st = [...info.subIds];
+    while (st.length) { const c = st.pop(); if (all.includes(c) || c === id) continue; all.push(c); st.push(...(pInfo.get(c).subIds || [])); }
+    const seen = new Set(), teamRows = [];
+    const add = r => { if (!seen.has(r.key)) { seen.add(r.key); teamRows.push(r); } };
+    [id, ...all].forEach(pid => pInfo.get(pid).ownRows.forEach(add));
+    mfs.filter(m => m.node.responsible === id).forEach(m => m.rows.forEach(add));
+    equipe.set(id, pnPool(teamRows));
+  });
+  return { geral: pnPool(rows), equipe };
+}
+// % que a página mostra como resultado (o mesmo da aba Painel do app):
+// página geral = desempenho geral; página de área = média ponderada da equipe do Head.
+function pctPagina(dados, m, pagina) {
+  const cfg = CONFIG.paginas[pagina] || {};
+  if (!cfg.head) return dados && dados.geral != null ? dados.geral : m.raiz.pct;
+  return m.raiz.pctEquipe != null ? m.raiz.pctEquipe : m.raiz.pct;
 }
 const chaveTri = p => `${p.ano}-T${p.trimestre}`;
 function reSigla(pagina) {
@@ -518,7 +585,7 @@ function prepararPacote(estado) {
   // a senha nunca é guardada no navegador: só os dados já convertidos
   return { em: Date.now(), periodos };
 }
-const CHAVE_CACHE = 'painel-okrs:v2';
+const CHAVE_CACHE = 'painel-okrs:v3';
 async function obterPacote(forcar) {
   if (!forcar) {
     try {
@@ -937,7 +1004,7 @@ function indicadores(m) {
   const cards = [];
 
   // 1. Ritmo do trimestre
-  const frac = fracTrimestre(S.tri), v = m.raiz.pct;
+  const frac = fracTrimestre(S.tri), v = pctPagina(dadosTri(S.tri), m, S.pagina);
   const rot = m.raiz.nome === m.raiz.cargo || !m.raiz.cargo ? m.raiz.nome : m.raiz.nome + ' · ' + m.raiz.cargo;
   let ritmo = '';
   if (frac != null && v != null) {
@@ -1020,7 +1087,7 @@ function resumoOkr(chavePag) {
   if (!dados) return null;
   const m = modeloPagina(dados, chavePag);
   if (!m.raiz) return null;
-  const pct = m.raiz.pct, frac = fracTrimestre(S.tri);
+  const pct = pctPagina(dados, m, chavePag), frac = fracTrimestre(S.tri);
   const krs = [], pend = [];
   m.todas.forEach(p => {
     const ks = p.okrs.flatMap(o => o.krs || []);
@@ -1133,10 +1200,10 @@ function renderSharepoint(raiz) {
     }).join('');
     let grupo = '';
     if (e.okrGrupo && dados) {
-      const m = modeloPagina(dados, 'GERAL');
+      const m = modeloPagina(dados, 'GERAL'), gPct = m.raiz ? pctPagina(dados, m, 'GERAL') : null;
       if (m.raiz) grupo = `<a class="gr" href="${esc(CONFIG.site)}" target="_top">
         <div><div class="gr-eb">${esc(m.raiz.cargo || 'CEO')} · ${esc(m.raiz.nome)}</div>${m.bhag ? `<div class="gr-bh">BHAG · ${esc(m.bhag.titulo)} · ${fmt(m.bhag.pct)}</div>` : ''}<div class="gr-ir">Ver o painel completo na página inicial →</div></div>
-        <b ${m.raiz.pct != null ? `style="color:${corSem(m.raiz.pct)}"` : ''}>${fmt(m.raiz.pct)}</b></a>`;
+        <b ${gPct != null ? `style="color:${corSem(gPct)}"` : ''}>${fmt(gPct)}</b></a>`;
     }
     const mv = [[e.rotuloMissao || 'Missão', e.missao], [e.rotuloVisao || 'Visão', e.visao]].filter(x => x[1]);
     html = `<div class="hz hz-emp">
