@@ -684,12 +684,12 @@ function DEMO_ESTADO() {
 /* =====================================================================
    ESTÚDIO — conteúdo editável (Firebase sharepoint-studio, coleção "conteudo").
    Leitura pública pela API REST (sem login). Se falhar, fica o que está no código.
-   Guarda uma cópia no navegador; busca de novo a cada ESTUDIO.minutos.
+   Guarda uma cópia no navegador; busca de novo quando a cópia tem mais de ESTUDIO.minutos.
    ?estudio=nao no link ignora o Estúdio (para testes).
    ===================================================================== */
 const ESTUDIO = {
   url: 'https://firestore.googleapis.com/v1/projects/sharepoint-studio/databases/(default)/documents/conteudo?pageSize=50&key=AIzaSyA1w_OOq478oTeTzebdaL29oCnvwFwWW3g',
-  cache: 'estudio:conteudo:v1', minutos: 10, espera: 2500
+  cache: 'estudio:conteudo:v1', minutos: 1, espera: 2500
 };
 function estudioValor(v) {
   if (!v) return null;
