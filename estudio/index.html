@@ -428,9 +428,9 @@ function campo(rot, c, o = {}) {
   if (o.opcoes) return `<label class="${cls}"><span>${esc(rot)}</span><select onchange="por('${c}', this.value)">${o.opcoes.map(([k, t]) => `<option value="${esc(k)}" ${k === v ? 'selected' : ''}>${esc(t)}</option>`).join('')}</select>${dica}</label>`;
   return `<label class="${cls}"><span>${esc(rot)}</span><input type="${o.tipo || 'text'}" value="${esc(v)}" ${ev} placeholder="${esc(o.ph || '')}" ${o.max ? `maxlength="${o.max}"` : ''}>${dica}</label>`;
 }
-function interruptor(rot, sub, c) {
-  const on = !!pegar(c);
-  return `<div class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" tabindex="0" onclick="por('${c}', !pegar('${c}')); this.classList.toggle('on')">
+function interruptor(rot, sub, c, padrao = false) {
+  const val = () => { const v = pegar(c); return v == null ? padrao : !!v; }, on = val();
+  return `<div class="sw ${on ? 'on' : ''}" role="switch" aria-checked="${on}" tabindex="0" onclick="por('${c}', !this.classList.contains('on')); this.classList.toggle('on'); this.setAttribute('aria-checked', this.classList.contains('on'))">
     <div class="tx"><b>${esc(rot)}</b><small>${esc(sub)}</small></div><i></i></div>`;
 }
 function bloco(tit, sub, corpo, o = {}) {
@@ -488,7 +488,9 @@ function abaInicio() {
   <div class="blocos">
     ${bloco('Seções visíveis', 'Ligue quando o conteúdo estiver pronto', `<div class="sws">
       ${interruptor('Ferramentas', 'Seção de ferramentas na página inicial', `${p}.exibir.ferramentas`)}
-      ${interruptor('Mural', 'Avisos, aniversariantes e agenda', `${p}.exibir.mural`)}</div>`)}
+      ${interruptor('Mural', 'Avisos, aniversariantes e agenda', `${p}.exibir.mural`)}
+      ${interruptor('Indicadores das obras', 'VGV, % vendido, avanço físico e entrega no carrossel Em construção', `${p}.exibir.indicadores`, true)}
+      ${interruptor('Selo "Dados provisórios"', 'Desligue quando os indicadores forem oficiais', `${p}.exibir.provisorio`, true)}</div>`)}
     ${bloco('Missão e propósito', '', `<div class="campos">
       ${campo('Missão', `${p}.missao`, { area: 2, l: 'lt' })}
       ${campo('Propósito', `${p}.proposito`, { area: 2, l: 'lt' })}</div>`)}
